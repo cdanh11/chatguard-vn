@@ -1,0 +1,65 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+service-account*.json
+
+# JavaScript / extension
+node_modules/
+.pnpm-store/
+.wxt/
+.output/
+dist/
+build/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Generated output
+coverage/
+htmlcov/
+.coverage
+playwright-report/
+test-results/
+logs/
+*.log
+*.sqlite
+*.sqlite3
+
+# Private data: documentation only
+/ml/data/**
+!/ml/data/README.md
+!/ml/data/.gitkeep
+
+# Model weights and artifacts
+checkpoints/
+models/
+artifacts/
+outputs/
+runs/
+wandb/
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.ckpt
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
