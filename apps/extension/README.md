@@ -1,12 +1,22 @@
-# Browser extension
+# Chrome extension
 
-Dự kiến: WXT + React + TypeScript, Chrome Manifest V3.
+WXT + React + TypeScript, Manifest V3.
 
-- Content script: xác minh cuộc, đọc vùng tin được chọn, loại trùng và quan sát thay đổi.
-- Quản lý phiên: dừng khi chuyển cuộc hoặc không xác định được định danh.
-- Background: điều phối API và phục hồi trạng thái khi service worker bị dừng.
-- Side Panel: bật/tắt, phạm vi đã đọc, cảnh báo, bằng chứng và xóa dữ liệu.
+```powershell
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
 
-Ưu tiên bật thủ công và quyền tối thiểu. Không dùng cookie, token hoặc endpoint nội bộ để lấy hộp thư cá nhân.
+Load unpacked `./.output/chrome-mv3` qua `chrome://extensions`.
 
-Chưa có mã ứng dụng hoặc dependencies.
+- `guard.content.ts`: chèn thủ công bằng activeTab; chưa bật thì không đọc tin.
+- `lib/adapters.ts`: demo ổn định và Facebook thử nghiệm, fail closed khi không xác minh được.
+- `lib/scope.ts`: giới hạn theo cuộc, loại trùng, 100 tin/24.000 ký tự, kiểm tra phiên và revision.
+- `background.ts`: điều phối API local, giới hạn quyền, hủy kết quả cũ.
+- `sidepanel/`: cấu hình, quyền gửi dữ liệu, cảnh báo và bằng chứng.
+
+Chỉ dùng `chrome.storage.session` cho token local và nội dung; không đưa khóa Groq vào extension. Chuyển cuộc dừng/xóa và cần bật lại. Reload tab cần kết nối lại. Không tự cuộn, gọi endpoint nội bộ Facebook hoặc truy cập cookie.
+
+Adapter Facebook cần hiệu chỉnh trên giao diện thật, không được xem là đã hỗ trợ sản phẩm chỉ vì build thành công.

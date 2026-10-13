@@ -1,0 +1,82 @@
+# Chạy một vòng bảo vệ
+
+## Cài đặt
+
+Yêu cầu: Windows PowerShell, Python 3.11 và Node.js 22+; Internet chỉ cần khi cài thư viện hoặc dùng Groq. Không cần Docker, GPU hoặc model weights.
+
+Từ thư mục repo:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-backend.ps1
+```
+
+Giữ cửa sổ backend mở. Token máy chủ được in để nhập vào tiện ích; không phải khóa Groq.
+
+1. Mở `chrome://extensions`, bật Developer mode.
+2. Chọn Load unpacked và thư mục `apps/extension/.output/chrome-mv3`.
+3. Ghim ChatGuard VN trên thanh tiện ích.
+4. Mở `http://127.0.0.1:8000/demo/#ctv`.
+5. Bấm biểu tượng tiện ích để mở Side Panel. Nhập token máy chủ, giữ chế độ bộ luật và lưu.
+6. Bấm **Kết nối tab đang mở**, rồi **Bật bảo vệ cuộc này**.
+7. Phát từng tin. Lúc đầu chưa có nội dung; khi tổ hợp dấu hiệu xuất hiện, cảnh báo kèm câu gốc được hiển thị.
+8. Chuyển sang Minh: phiên dừng và nội dung cũ bị xóa. Phát tin của Minh không được tự phân tích.
+9. Quay lại CTV, bấm bật lại. Để kết thúc bấm **Tắt & xóa**.
+
+Bấm **Kiểm tra kết nối** trong cấu hình để kiểm tra backend/token (không gọi Groq, không kiểm tra quota). Bấm **Xem tin này** dưới bằng chứng để cuộn và tô sáng tin gốc trong phòng thử. Đóng/mở lại panel giữ phiên trong cùng phiên trình duyệt. Nút **Làm lại** xóa phiên bảo vệ; cần bật lại chủ động.
+
+## Nhập tình huống của nhóm
+
+Trong phòng thử, chọn file JSON ở cuối trang. Nội dung mẫu:
+
+```json
+{"name":"Tình huống tuyển CTV", "messages":[
+  {"sender":"other", "text":"Em chuyển khoản 300k kích hoạt tài khoản nhé"},
+  {"sender":"self", "text":"Tôi cần xác minh công ty trước"}
+]}
+```
+
+Cho phép `self`, `other`, `unknown`; 1–100 tin, mỗi tin tối đa 4.000 ký tự, tổng tối đa 24.000 ký tự, file tối đa 160 KB. File được kiểm tra và đọc tại trình duyệt; không tự upload. Chuyển sang cuộc nhập sẽ dừng phiên cũ. Bật lại bảo vệ rồi phát tin. **Xuất hội thoại hiện tại** tải file chứa những tin đã phát và tin tự thêm; lưu ý nếu bạn tự nhập nội dung riêng tư. Các cuộc nhập tồn tại tới lúc tải lại trang.
+
+Trang thử không gửi tin cho người thật. Các ca được biên soạn, không phải bản chép tin nhắn của nạn nhân.
+
+## Groq tùy chọn
+
+- Tạo khóa tại https://console.groq.com/keys trên tài khoản GroqCloud.
+- Điền `GROQ_API_KEY` trong `apps/api/.env`, giữ `GROQ_MODEL=openai/gpt-oss-120b`, rồi khởi động lại backend. Model khác cần hỗ trợ strict structured outputs.
+- Trong tiện ích chọn Groq và xác nhận đồng ý gửi ngữ cảnh. Lưu cấu hình sẽ dừng mọi phiên; cần bật lại.
+- Không tự gắn billing; hạn mức và khả năng truy cập không được đảm bảo.
+- Dùng dữ liệu tổng hợp khi thử. Chính sách xử lý dữ liệu: https://console.groq.com/docs/your-data .
+- Hạn mức có cả lượt gọi và token; xem https://console.groq.com/docs/rate-limits . Không gọi lại ngay liên tục khi nhận 429.
+- Lỗi hạn mức/kết nối được hiển thị; không âm thầm đổi sang bộ luật và gọi đó là kết quả AI.
+- Mỗi lượt Groq dùng tối đa 40 tin gần nhất/6.000 ký tự và chờ tối thiểu 30 giây giữa các lượt. Đây là mức tiết kiệm cho MVP, không bảo đảm tránh mọi quota. Khi 429, chờ thời gian hiển thị rồi bấm thử lại. Số tin thực sự được phân tích hiện bên dưới kết quả.
+
+## Facebook thật
+
+Bộ đọc là adapter thử nghiệm, chưa được xác nhận trên tài khoản thực. Mở một cuộc dạng `/messages/t/<id>` hoặc `/t/<id>` ở chế độ toàn trang. Không hỗ trợ chat nổi, chat nhóm, ảnh, audio hoặc lịch sử chưa tải.
+
+Bạn tự đăng nhập. Dùng tài khoản thứ hai do bạn sở hữu hoặc một người đồng ý tham gia. Có thể lấy kịch bản từ `apps/api/demo/scenarios.json`; không dùng link, OTP hay giao dịch thật.
+
+Bật tùy chọn Facebook thử nghiệm trong tiện ích. Nếu giao diện không có vùng tin duy nhất hoặc ID tin ổn định, bộ đọc sẽ dừng thay vì đoán. Cần hiệu chỉnh adapter theo giao diện thực; không suy ra đã hỗ trợ Facebook chỉ vì demo local chạy.
+
+Nếu thử một mình và chưa có tài khoản thứ hai, dùng phòng thử local để trình bày toàn bộ vòng đời. Không cần tạo tài khoản giả hay đưa thông tin đăng nhập cho người khác.
+
+## Kiểm tra
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check.ps1
+```
+
+Tập thử nhỏ kiểm tra cơ chế; không phải số liệu độ chính xác cho sử dụng thực tế.
+
+Đánh giá baseline trên nhãn tổng hợp hiện có (không gọi dịch vụ ngoài): từ `apps/api`, chạy `.\.venv\Scripts\python.exe evaluate.py`. Báo cáo nằm tại `outputs/baseline-evaluation.json`. Nhãn do nhóm biên soạn, chưa phải tập test độc lập. Chưa có huấn luyện model trong vòng MVP này.
+
+Kiểm tra trên trình duyệt (tùy chọn, giữ backend đang chạy):
+
+```powershell
+cd apps/extension
+npx playwright install chromium
+npm run test:e2e
+```
+
+Nếu đã có Chromium hỗ trợ unpacked extension, đặt `CHROMIUM_EXECUTABLE` tới file thực thi để bỏ qua bước tải. Bài thử dùng profile tạm riêng, dữ liệu tổng hợp và xóa profile khi kết thúc; không dùng tài khoản Facebook của bạn. Side Panel được mở như trang extension để kiểm tra tự động, nên thao tác bấm biểu tượng mở Side Panel vẫn cần kiểm tra thủ công trong Chrome.
