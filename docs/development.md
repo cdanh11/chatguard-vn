@@ -20,6 +20,6 @@ Thay file production trên đĩa không tự cập nhật extension đã đượ
 
 ## Quyền và khả năng kiểm thử
 
-WXT dev thêm quyền `tabs`, host localhost và CSP cho server phát triển. Bản production giữ `activeTab`, không có quyền Facebook thường trực. Dev chỉ dùng trên máy phát triển với dữ liệu thử.
+WXT dev thêm quyền `tabs`, host localhost và CSP cho server phát triển. Production dùng `activeTab` và `alarms` để hẹn phân tích khi worker nghỉ, không có quyền Facebook thường trực. Dev chỉ dùng trên máy phát triển với dữ liệu thử.
 
 Công cụ hiện điều khiển được trang Facebook của hai tài khoản đã được cho phép, nhưng không trực tiếp thao tác panel native hoặc trang quản lý extension. Tự cập nhật không mở rộng khả năng điều khiển UI này. Kiểm thử panel tự động chạy trên Chromium cách ly; trạng thái phân tích của phiên Brave có thể kiểm tra qua API local cần token, không lưu nội dung chat.

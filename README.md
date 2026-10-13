@@ -65,6 +65,7 @@ Không commit `.env`, dữ liệu riêng tư, model weights hoặc checkpoints. 
 - [Phạm vi MVP](docs/mvp.md)
 - [Kiến trúc](docs/architecture.md)
 - [Giao diện và thao tác](docs/extension-ux.md)
+- [Theo dõi khi đóng panel](docs/background-mode.md)
 - [Nguồn dữ liệu tổng hợp](docs/data-sources.md)
 - [Các bước tiếp theo](docs/next-steps.md)
 - [Quy định dữ liệu](ml/data/README.md)

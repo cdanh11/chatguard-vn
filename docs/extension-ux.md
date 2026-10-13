@@ -26,4 +26,6 @@ Thẻ trên cùng có tên, trạng thái, số tin và thao tác **Đổi ngư�
 
 **Tùy chọn cuộc trò chuyện** chứa mức 100/300 và đọc thêm tin cũ. **Giới hạn đánh giá** mở khi cần. Nút cài đặt ở header mở một màn hình riêng; build DEV và mã reader nằm trong **Thông tin kỹ thuật**.
 
+Có thể đóng panel và nhận dấu `!` từ toolbar/nút nhỏ trên trang. Tần suất mỗi tin hoặc gộp 5 tin nằm trong cài đặt. Xem [theo dõi trong nền](background-mode.md).
+
 Kiểm thử trình duyệt kiểm tra layout 360px không tràn ngang, cảnh báo thấy trong viewport đầu, mở/đóng cài đặt giữ session, đổi người chưa đọc trước khi bật, bằng chứng, đóng/mở chat, lịch sử và các lỗi vận chuyển. Ảnh ở `outputs/` là dữ liệu tổng hợp, không commit.

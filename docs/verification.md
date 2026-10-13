@@ -4,6 +4,10 @@ Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng 
 
 ## Bổ sung Brave và đồng bộ — 2026-10-14
 
+- Chế độ nền: 23 tests extension đạt. Production build trong profile Chromium cách ly phân tích khi panel đã đóng, gộp 4/5 tin đúng, ưu tiên OTP, hiện badge `!` và nút trên trang, mở lại giữ kết quả.
+- Sau thay đổi lịch/badge, cả popup fixture và smoke MVP đạt lại: chỉ người chọn, 300 tin, đóng/mở, consent Groq, quota/thử lại, phản hồi muộn, đổi tab và mất backend.
+- Đã dừng đúng service worker test qua protocol, quan sát `running → stopping → stopped`; alarm đánh thức lại, hoàn tất lượt đang chờ với cùng session mà không mở panel. Tắt/xóa làm mất badge, chỉ báo và alarm. Đây là kiểm thử profile riêng/dữ liệu tổng hợp, chưa phải kiểm chứng phiên Brave của người dùng với bản mới.
+
 - Người dùng xác nhận bản sửa giữ đối tượng hoạt động khi đóng chat. Đây là phản hồi từ phiên Brave, tách biệt với kiểm thử fixture.
 - UX mới tách cài đặt khỏi theo dõi, thu gọn bằng chứng/tùy chọn và bật bộ đọc qua thao tác bảo vệ rõ ràng. Fixture đạt ở 360px: không tràn ngang, cảnh báo ở viewport đầu, mở/đóng cài đặt không reset phiên, đổi người chưa đọc trước khi bật.
 
