@@ -1,0 +1,38 @@
+[
+  {"id":"ctv","name":"CTV nhập liệu · tổng hợp","category":"Tuyển cộng tác viên","expected":"high_concern","messages":[
+    {"sender":"other","text":"Chào em, bên chị tuyển CTV nhập liệu, làm ở nhà nhé."},
+    {"sender":"self","text":"Dạ công việc thế nào, có mất phí không chị?"},
+    {"sender":"other","text":"Không thu phí. Em làm nhiệm vụ đơn hàng sẽ nhận hoa hồng."},
+    {"sender":"other","text":"e ck 300k kích hoạt tk, xong bên chị hoàn lại nha."},
+    {"sender":"self","text":"Sao lúc đầu chị nói không thu phí?"},
+    {"sender":"other","text":"Suất cuối đó, đừng hỏi admin nhóm khác. Chuyển ngay mới giữ được việc."},
+    {"sender":"other","text":"Muốn rút tiền em phải nạp tiền mở khóa thêm, rồi chị hoàn tiền một lần."}
+  ]},
+  {"id":"friend","name":"Minh · bạn học giả lập","category":"Hội thoại bình thường","expected":"no_signal","messages":[
+    {"sender":"other","text":"Chiều nay học ở thư viện nhé?"},
+    {"sender":"self","text":"Ừ, gửi mình bài tập trước nha."},
+    {"sender":"other","text":"Mình mang laptop, bạn mang sổ nhé."},
+    {"sender":"self","text":"Ok 2 giờ gặp."}
+  ]},
+  {"id":"authority","name":"Cơ quan giả danh · tổng hợp","category":"Giả danh cơ quan","expected":"high_concern","messages":[
+    {"sender":"other","text":"Tôi là cán bộ công an, tài khoản của bạn liên quan vụ án đang điều tra."},
+    {"sender":"self","text":"Tôi có thể đến cơ quan xác minh không?"},
+    {"sender":"other","text":"Giữ bí mật, không nói với ai để phục vụ điều tra."},
+    {"sender":"other","text":"Chuyển khoản ngay lập tức để chứng minh tiền của bạn hợp pháp."}
+  ]},
+  {"id":"otp","name":"Hỗ trợ nhận quà · tổng hợp","category":"Yêu cầu mã truy cập","expected":"high_concern","messages":[
+    {"sender":"other","text":"Bạn được chọn nhận quà tri ân."},
+    {"sender":"self","text":"Tôi cần làm gì?"},
+    {"sender":"other","text":"Đọc mã OTP vừa nhận để tôi xác nhận phần quà."}
+  ]},
+  {"id":"loan","name":"Lan · nhắc trả nợ giả lập","category":"Ca dễ cảnh báo nhầm","expected":"review","messages":[
+    {"sender":"other","text":"Bạn chuyển khoản tiền hôm trước giúp mình nhé."},
+    {"sender":"self","text":"Mình gọi số cũ của bạn xác nhận nha."},
+    {"sender":"other","text":"Ừ gọi mình, không cần chuyển ngay đâu."}
+  ]},
+  {"id":"advice","name":"Bạn nhắc cảnh giác · tổng hợp","category":"Phủ định và khuyến cáo","expected":"no_signal","messages":[
+    {"sender":"other","text":"Đừng cung cấp OTP cho người lạ nhé."},
+    {"sender":"self","text":"Ok, có gì mình sẽ gọi xác minh trước."},
+    {"sender":"other","text":"Không chuyển khoản theo yêu cầu không xác định."}
+  ]}
+]

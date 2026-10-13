@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChatGuard VN · Phòng thử hội thoại</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <header><a class="brand" href="./">◈ <span>ChatGuard <b>VN</b></span></a><span class="tag">PHÒNG THỬ · DỮ LIỆU TỔNG HỢP</span></header>
+  <div class="intro"><p class="eyebrow">BẢO VỆ BẮT ĐẦU TỪ MỘT LẦN KIỂM CHỨNG</p><h1>Nhận ra dấu hiệu.<br>Giữ quyền quyết định.</h1><p>Thử một cuộc trò chuyện, bật tiện ích và quan sát cảnh báo khi tình huống thay đổi.</p></div>
+  <main>
+    <aside><div class="section-title">Kịch bản thử <span id="case-count"></span></div><nav id="cases" aria-label="Kịch bản hội thoại"></nav><div class="note">Tất cả tên và tin nhắn ở đây đều được biên soạn. Không có tài khoản thật và không gửi tin tới ai.</div></aside>
+    <section class="conversation"><div class="chat-heading"><div class="avatar" id="avatar">C</div><div><h2 id="name"></h2><p id="category"></p></div><span class="pill">Mô phỏng</span></div>
+      <div id="thread" aria-label="Tin nhắn hội thoại" data-chatguard-thread="" data-chatguard-name=""></div>
+      <div class="scenario-controls"><button id="next">Phát tin tiếp theo →</button><button class="secondary" id="all">Phát hết kịch bản</button><button class="text" id="reset">Làm lại</button><span id="progress"></span></div>
+      <form id="composer"><label class="sr-only" for="sender">Người gửi</label><select id="sender"><option value="other">Đối phương</option><option value="self">Tôi</option></select><label class="sr-only" for="message">Tin thử</label><input id="message" maxlength="4000" placeholder="Thêm tin thử của riêng bạn…" autocomplete="off"><button type="submit">Thêm</button></form>
+    </section>
+    <aside class="guide"><p class="eyebrow">BẮT ĐẦU TRONG 3 BƯỚC</p><h2>Mở ChatGuard<br>ở cạnh trình duyệt.</h2><ol><li>Bấm biểu tượng tiện ích để mở bảng bảo vệ.</li><li>Nhập token máy chủ, kết nối tab này.</li><li>Bật bảo vệ, rồi phát tin tiếp theo.</li></ol><div class="callout">Chuyển sang “Minh” để thử việc dừng thu thập. Quay lại CTV cần bấm bật lại; dữ liệu phiên trước được xóa.</div><p class="note">Chế độ bộ luật chạy không cần khóa AI. Chế độ Groq cần cấu hình và đồng ý gửi ngữ cảnh. Đây chưa phải công cụ xác minh danh tính.</p></aside>
+  </main><footer>ChatGuard VN · Không tự gửi tin, chặn người hoặc thực hiện giao dịch.</footer>
+  <section style="margin:24px"><h2>Thử hội thoại của nhóm</h2><p>Nhập JSON gồm name và messages (sender: self/other/unknown, text). Tối đa 100 tin, 24.000 ký tự. File được đọc tại trình duyệt; chỉ gửi đi khi bạn bật bảo vệ.</p><input id="import-file" type="file" accept=".json,application/json" aria-label="Nhập hội thoại JSON"><button id="export-case">Xuất hội thoại hiện tại</button><p id="import-status" role="status"></p></section>
+  <script type="module" src="demo.js"></script>
+</body></html>
