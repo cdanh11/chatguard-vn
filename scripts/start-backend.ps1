@@ -1,3 +1,4 @@
+param([switch]$Dev)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $apiRoot = Join-Path $projectRoot 'apps\api'
@@ -10,5 +11,9 @@ Write-Host 'ChatGuard VN local server: http://127.0.0.1:8000/demo/#ctv'
 Write-Host 'Paste this local token into the extension settings (never use your Groq key):'
 Write-Host ($tokenLine -replace '^CHATGUARD_API_TOKEN=', '')
 Push-Location $apiRoot
-try { & $pythonExe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log }
+try {
+    $serverArgs = @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000','--no-access-log')
+    if ($Dev) { $serverArgs += '--reload' }
+    & $pythonExe @serverArgs
+}
 finally { Pop-Location }

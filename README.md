@@ -5,11 +5,11 @@ Tiện ích Chrome hỗ trợ nhận diện dấu hiệu thao túng và lừa đ
 ## Trạng thái MVP
 
 - Có extension WXT/React, backend FastAPI và phòng thử hội thoại tổng hợp.
-- Có vòng bật bảo vệ → đọc tin → phân tích → cảnh báo có bằng chứng → dừng/xóa khi đổi cuộc.
+- Có vòng chọn người → bật bảo vệ → đọc tin → phân tích → cảnh báo có bằng chứng → tắt/xóa phiên.
 - Có kiểm tra backend, phục hồi khi mở lại bảng tiện ích, nhập/xuất hội thoại JSON, xem tin bằng chứng và xử lý quota/thử lại.
 - Mặc định dùng **bộ luật minh họa**, không phải mô hình AI đã huấn luyện.
 - Có tích hợp Groq tùy chọn, cần khóa API và đồng ý gửi ngữ cảnh. Không có khóa thì không gọi AI bên ngoài.
-- Adapter Facebook đang thử nghiệm; phải kiểm chứng/hiệu chỉnh trên giao diện thực trước khi tuyên bố hỗ trợ. Lỗi xác định phạm vi sẽ dừng thu thập.
+- Bộ đọc ô chat nhỏ Facebook đã được đối chiếu với DOM thật của hai tài khoản thử. Panel liệt kê metadata các cuộc đang mở, chỉ đọc nội dung người được chọn; đóng ô chat giữ lựa chọn và chờ đúng cuộc được tải lại. Giao diện khác vẫn cần kiểm chứng.
 - Chưa có model fine-tune, số liệu chất lượng thực tế, ứng dụng di động hoặc bản phát hành công khai.
 
 ## Chạy local
@@ -52,10 +52,10 @@ Tests kiểm tra schema, quyền truy cập, bằng chứng, phạm vi cuộc tr
 - Không yêu cầu mật khẩu, cookie, token Facebook hoặc PIN Messenger.
 - Content script chỉ được chèn khi người dùng chủ động kết nối tab; đọc nội dung chỉ sau khi bật bảo vệ.
 - Quyền Chrome ở mức trang/tab; giới hạn theo cuộc do phần mềm thực thi.
-- Ngữ cảnh và token local lưu bằng `chrome.storage.session`, không đồng bộ tài khoản; đổi cuộc sẽ xóa phiên cũ và cần bật lại.
+- Ngữ cảnh và token local lưu bằng `chrome.storage.session`, không đồng bộ tài khoản. Chỉ một người được theo dõi; tắt/xóa trước khi chọn người mới. Đóng ô chat nhỏ giữ lựa chọn; đóng/tải lại tab Facebook hoặc đổi đường dẫn dừng phiên.
 - Backend chỉ lắng nghe `127.0.0.1`, dùng token, giới hạn đầu vào/lượt gọi và không ghi nội dung chat vào log hay cơ sở dữ liệu.
 - Chế độ Groq gửi phần ngữ cảnh được chọn tới Groq sau khi đồng ý. Ưu tiên dữ liệu tổng hợp khi thử; xem [chính sách dữ liệu Groq](https://console.groq.com/docs/your-data).
-- Bộ đệm tối đa 100 tin/24.000 ký tự; Groq nhận tối đa 40 tin gần nhất/6.000 ký tự mỗi lượt, cách nhau tối thiểu 30 giây. Giao diện hiển thị số tin đã phân tích. Không tải tự động toàn bộ lịch sử, không đọc chat nổi hoặc tự gửi tin.
+- Mức 1 giữ tối đa 100 tin/24.000 ký tự; mức 2 giữ tối đa 300 tin/72.000 ký tự. Nút nạp lịch sử chỉ cuộn trong đúng cuộc đã chọn và báo số tin thực tế. Groq nhận tối đa 40 tin gần nhất/6.000 ký tự mỗi lượt, cách nhau tối thiểu 30 giây; ID thật được thay bằng mã tạm trước khi gửi. Không cam kết lấy đủ lịch sử hoặc đọc tin khi Facebook đã gỡ ô chat khỏi DOM; không tự gửi tin.
 - Cảnh báo không xác minh danh tính, không chứng minh một người phạm tội hoặc cuộc trò chuyện an toàn.
 
 Không commit `.env`, dữ liệu riêng tư, model weights hoặc checkpoints. Khóa Groq chỉ đặt trong `apps/api/.env`, không trong extension.

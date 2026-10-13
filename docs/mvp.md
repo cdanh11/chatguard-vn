@@ -3,8 +3,8 @@
 ## Đã triển khai trong mã
 
 - Chrome desktop, WXT/React và FastAPI local.
-- Chọn một cuộc; bật/tắt, dừng và xóa khi đổi định danh/đường dẫn.
-- Chỉ văn bản đã tải; giữ tối đa 100 tin và 24.000 ký tự, không chờ đủ 100 để phân tích.
+- Chọn một người trong các ô chat; bật/tắt, không tự chuyển người, dừng/xóa khi tắt hoặc đổi đường dẫn. Đóng ô chat nhỏ giữ lựa chọn và chờ đúng người xuất hiện lại.
+- Chỉ văn bản đã tải; giữ mặc định 100 tin/24.000 ký tự, tùy chọn 300 tin/72.000 ký tự; không chờ đủ giới hạn để phân tích.
 - Backend token, schema giới hạn, evidence IDs và ngăn chỉ dẫn trong chat được coi là lệnh.
 - Bộ luật minh họa không gọi bên ngoài; Groq tùy chọn có đồng ý riêng và báo lỗi rõ.
 - Phòng thử với ca tuyển CTV, giả danh cơ quan, xin OTP và các ca bình thường/dễ nhầm.
@@ -16,7 +16,7 @@
 
 ## Cần kiểm chứng thêm
 
-- Adapter Facebook với DOM tài khoản thực, định danh tin và bên gửi.
+- Đã đối chiếu DOM của hai tài khoản thử; còn cần khép kín kiểm thử extension Brave đang báo 0 tin sau khi người dùng reload bản build và Facebook.
 - Độ bền khi dùng Groq lâu dài với hạn mức thực (đã có một lượt gọi thật thành công).
 - Chất lượng phân tích tiếng Việt trên dữ liệu độc lập.
 - Điều khoản nền tảng và chính sách trước phát hành.
@@ -27,4 +27,4 @@ Cam kết toàn bộ lịch sử; giám sát khi đóng tab; xác minh danh tín
 
 ## Nghiệm thu
 
-Chuyển A → B → A không đọc B hoặc tự bật lại; không lặp tin khi tải lại DOM; không hiện kết quả phiên cũ; lỗi kết nối không biến thành “an toàn”; tắt và xóa không giữ nội dung phiên. Demo local và Facebook phải được báo cáo tách biệt.
+Facebook: chọn A, mở/nhắn B không đọc B; đóng A giữ lựa chọn, mở lại A nối đúng ID; không lặp tin khi dựng lại DOM; lịch sử ghép đúng thứ tự. Demo đổi route dừng và cần bật lại. Không hiện kết quả phiên đã tắt; lỗi kết nối không biến thành “an toàn”; tắt/xóa không giữ nội dung phiên. Fixture, probe DOM và phiên extension thật phải được báo cáo tách biệt.

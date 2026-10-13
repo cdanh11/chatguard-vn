@@ -2,6 +2,28 @@
 
 Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng cho kiểm thử.
 
+## Bổ sung Brave và đồng bộ — 2026-10-14
+
+- Người dùng xác nhận 10 tin trong panel và có kết quả Groq sau reload. API local xác nhận lượt gần nhất có 10 tin, Groq/review và dấu vân tay đúng cuộc được chọn.
+- API: 32 tests đạt, gồm từ chối evidence self/unknown và làm sạch danh sách trống của Groq. Extension: 19 tests đạt; typecheck/build đạt.
+- Thêm dấu build reader, chặn bắt đầu khi reader không khớp, dọn listener của reader đã hủy và khôi phục đúng mức lịch sử khi mở lại panel.
+- Kiểm tra giao thức WXT local: thay reader phát lệnh reload extension; worker kết nối lại không gây vòng reload. Chưa nạp bản DEV vào Brave người dùng. Hướng dẫn: [Phát triển trên Brave](development.md).
+- Groq thật với 4 tin tổng hợp có cả self và other: HTTP 200, high_concern, evidence chỉ thuộc other, giới hạn không rỗng. Không dùng một ca này làm độ chính xác của mô hình.
+- Hai kiểm thử trình duyệt đạt sau sửa: popup Facebook fixture và demo MVP. Thêm kiểm tra kết nối lại bộ đọc, mở lại panel giữ mức 300. Mock Groq dùng bằng chứng của other.
+- Tin tổng hợp mới giữa hai tài khoản đã tới ô chat Brave; probe chỉ đọc thấy 14 tin gồm tin mới. API chưa ghi nhận lượt phân tích Facebook tiếp theo trong thời gian quan sát. Cần tiếp tục kiểm tra phiên extension đang mở sau khi nạp bản mới; chưa xác nhận theo dõi tăng dần trên phiên đó.
+
+## Bổ sung Facebook — 2026-10-13
+
+- API: 29 tests đạt; extension: 19 tests đạt; typecheck/build đạt. Thêm kiểm tra chỉ đọc A trong 5 ô chat, ID trùng/không khớp, đóng/mở lại, thứ tự lịch sử 300 tin, trần request và không gửi ID Facebook tới Groq.
+- Kiểm thử trình duyệt MVP cũ đạt sau thay đổi. Kiểm thử popup fixture đạt: 320 tin giữ 300 cuối, bỏ qua B–E, xem bằng chứng, đóng/mở giữ A, nạp lịch sử từng đợt 30 → 300 đúng thứ tự, tắt/xóa. Fixture dùng profile cách ly và không truy cập tài khoản thật.
+- Probe chỉ đọc từ cùng mã bộ đọc production nhận được 10 tin văn bản từ mỗi phía của cuộc thử Facebook, xác định đúng self/other. Chỉ hai tài khoản được người dùng cho phép đã trao đổi kịch bản tổng hợp.
+- Gửi dữ liệu kịch bản đã thay ID vào API local: phía nhận yêu cầu nạp tiền trả `high_concern`; phía hỏi để kiểm chứng trả `no_signal` sau sửa baseline. Không phải số liệu accuracy và không phải xác nhận danh tính lừa đảo.
+- Tại thời điểm 2026-10-13, phiên Brave báo 0 tin dù probe đọc được 10. Đã giải quyết sau reload theo xác minh 2026-10-14 ở trên.
+
+Chi tiết: [Luồng Facebook](facebook-mvp.md), [Review và giới hạn còn lại](facebook-review.md).
+
+## Kiểm chứng nền local trước tích hợp Facebook
+
 - API: 24 kiểm thử đạt, gồm health/token không lộ khóa, token/origin, giới hạn ngữ cảnh, bằng chứng, lỗi cấu hình và giới hạn lượt gọi. Groq dùng HTTP transport mô phỏng để kiểm tra đúng endpoint, Bearer auth, JSON schema, consent, lỗi quota/khóa và từ chối kết quả không hợp lệ.
 - Extension: 13 kiểm thử đạt, gồm bật/tắt, đổi phạm vi, loại trùng, giới hạn 100 tin/24.000 ký tự, giới hạn Groq 40 tin/6.000 ký tự, Retry-After, kiểm tra evidence và loại kết quả cũ.
 - TypeScript và production build đạt. Manifest chỉ có host permission cho API local; trang chat dùng activeTab.

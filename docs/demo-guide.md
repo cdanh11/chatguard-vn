@@ -53,11 +53,11 @@ Trang thử không gửi tin cho người thật. Các ca được biên soạn,
 
 ## Facebook thật
 
-Bộ đọc là adapter thử nghiệm, chưa được xác nhận trên tài khoản thực. Mở một cuộc dạng `/messages/t/<id>` hoặc `/t/<id>` ở chế độ toàn trang. Không hỗ trợ chat nổi, chat nhóm, ảnh, audio hoặc lịch sử chưa tải.
+Bộ đọc thử nghiệm hiện tập trung vào ô chat nhỏ trên Facebook. Đã đối chiếu DOM của hai tài khoản thử; không suy ra mọi tài khoản/giao diện đều được hỗ trợ. Xem [chọn một người và mức lịch sử 100/300](facebook-mvp.md). Chat nhóm, ảnh/audio và bố cục toàn trang chưa được xác minh đầy đủ.
 
 Bạn tự đăng nhập. Dùng tài khoản thứ hai do bạn sở hữu hoặc một người đồng ý tham gia. Có thể lấy kịch bản từ `apps/api/demo/scenarios.json`; không dùng link, OTP hay giao dịch thật.
 
-Bật tùy chọn Facebook thử nghiệm trong tiện ích. Nếu giao diện không có vùng tin duy nhất hoặc ID tin ổn định, bộ đọc sẽ dừng thay vì đoán. Cần hiệu chỉnh adapter theo giao diện thực; không suy ra đã hỗ trợ Facebook chỉ vì demo local chạy.
+Bật tùy chọn Facebook, kết nối tab, chọn đúng một đối tượng và bật bảo vệ. Danh sách chỉ lấy metadata, không đọc nội dung các cuộc chưa chọn. Nếu định danh header và tin không khớp, không đọc. Đóng ô chat giữ lựa chọn nhưng có thể gián đoạn nhận tin; mở lại đúng cuộc để nối lại. Cần kiểm chứng luồng extension thật, không suy ra từ demo/fixture.
 
 Nếu thử một mình và chưa có tài khoản thứ hai, dùng phòng thử local để trình bày toàn bộ vòng đời. Không cần tạo tài khoản giả hay đưa thông tin đăng nhập cho người khác.
 
