@@ -78,7 +78,7 @@ function App() {
       setSettings(next);setSavedSettings(next);
     }
     const r=await command('START',{conversationId:chosen?.id,historyLimit});
-    if(r?.snapshot)setState({snapshot:r.snapshot});
+    if(r?.snapshot){setState({snapshot:r.snapshot});setNotice('Đã bật bảo vệ. Bạn có thể đóng panel; ChatGuard sẽ hiện ! khi cần kiểm chứng.');}
   }
   const watching=state?.snapshot.status === 'watching';
   const chosen=watching?state.snapshot.conversation:available.find(c=>c.id===selectedId)||null;
@@ -97,6 +97,8 @@ function App() {
           <label>Token máy chủ local<input type="password" autoComplete="off" value={settings.token} onChange={e=>setSettings({...settings,token:e.target.value})} placeholder="Nhập token từ máy chủ"/></label>
           <p className="field-note">Token kết nối máy chủ trên máy bạn. Không nhập khóa Groq vào đây.</p>
           <label>Bộ phân tích<select value={settings.provider} onChange={e=>setSettings({...settings,provider:e.target.value as Settings['provider'],externalConsent:false})}><option value="rules">Trên máy · bộ luật cơ bản</option><option value="groq">Groq AI · gửi văn bản để phân tích</option></select></label>
+          <label>Tần suất kiểm tra<select value={settings.analysisEvery} onChange={e=>setSettings({...settings,analysisEvery:Number(e.target.value)===5?5:1})}><option value="1">Sau mỗi tin nhắn</option><option value="5">Gộp 5 tin</option></select></label>
+          <p className="field-note">Lượt đầu và yêu cầu tiền/OTP được ưu tiên. Nhóm chưa đủ 5 tin chờ khoảng 45 giây; Groq vẫn cách ít nhất 30 giây giữa các lượt.</p>
           {settings.provider==='groq' ? <label className="check"><input type="checkbox" checked={settings.externalConsent} onChange={e=>setSettings({...settings,externalConsent:e.target.checked})}/><span>Tôi đồng ý gửi văn bản của cuộc được chọn qua máy chủ tới Groq để phân tích, theo chính sách xử lý dữ liệu của Groq.</span></label> : <p className="setting-note"><Shield small/> Văn bản được phân tích trên máy, không gửi tới dịch vụ AI.</p>}
           {watching&&<p className="setting-note">Lưu thay đổi sẽ dừng phiên bảo vệ hiện tại. Bạn có thể bật lại sau khi lưu.</p>}
           <button type="submit" className="full" disabled={busy||!settings.token.trim()}>Lưu cấu hình</button>
@@ -146,4 +148,7 @@ function App() {
     </main><footer><Shield small/> Cảnh báo hỗ trợ kiểm chứng, không xác minh danh tính.</footer>
   </div>;
 }
-createRoot(document.getElementById('root')!).render(<App/>);
+// Reuse the root during Vite updates instead of mounting competing panels/timers.
+const root=(import.meta.hot?.data.root as ReturnType<typeof createRoot>|undefined)||createRoot(document.getElementById('root')!);
+if(import.meta.hot)import.meta.hot.data.root=root;
+root.render(<App/>);

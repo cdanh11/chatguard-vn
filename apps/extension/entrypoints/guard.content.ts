@@ -3,6 +3,8 @@ import {describe,conversations,readMessages} from '../lib/adapters';
 import {selectedThread,facebookMessages,facebookScroller} from '../lib/facebook';
 import {Scope} from '../lib/scope';
 import {READER_BUILD} from '../lib/reader-version';
+import {PageIndicator} from '../lib/page-indicator';
+import type {Indicator} from '../lib/types';
 
 export default defineContentScript({
   matches:['http://127.0.0.1:8000/*'],registration:'runtime',
@@ -10,9 +12,15 @@ export default defineContentScript({
     const win=window as unknown as Record<string,unknown>;
     if(win.__chatguardInstalled)return;win.__chatguardInstalled=true;
     const scope=new Scope();let lastLocation=location.href,lastSnapshot='',loading=false;
+    let indicatorSession='';
+    const indicator=new PageIndicator(()=>{void browser.runtime.sendMessage({type:'GUARD_OPEN_PANEL'}).then(r=>{if(r?.error)indicator.hint('Mở từ biểu tượng ChatGuard trên thanh tiện ích');}).catch(()=>indicator.hint('Mở lại ChatGuard để kết nối'));});
     let timer:ReturnType<typeof ctx.setTimeout>|undefined;
     const choices=()=>conversations(document,new URL(location.href));
-    const publish=()=>{const key=JSON.stringify(scope.state);if(key!==lastSnapshot){lastSnapshot=key;void browser.runtime.sendMessage({type:'GUARD_STATE',snapshot:scope.state}).catch(()=>{});}};
+    const publish=()=>{
+      if(scope.state.status!=='watching'){indicator.destroy();indicatorSession='';}
+      else if(indicatorSession!==scope.state.sessionId){indicatorSession=scope.state.sessionId;indicator.render({kind:'pending',text:'…',color:'#687b75',label:'ChatGuard: đang bắt đầu theo dõi.'});}
+      const key=JSON.stringify(scope.state);if(key!==lastSnapshot){lastSnapshot=key;void browser.runtime.sendMessage({type:'GUARD_STATE',snapshot:scope.state}).catch(()=>{});}
+    };
     const capture=(prepend=false)=>{
       if(scope.state.status!=='watching')return;
       const chosen=scope.state.conversation!;
@@ -63,10 +71,15 @@ export default defineContentScript({
     const observer=new MutationObserver(()=>{verifyRoute();if(scope.state.status!=='watching')return;clearTimeout(timer);timer=ctx.setTimeout(()=>capture(loading),450);});
     observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','data-message-id','hidden','style']});
     ctx.setInterval(()=>{verifyRoute();if(scope.state.status==='watching')capture(loading);},1000);
-    ctx.onInvalidated(()=>{observer.disconnect();clearTimeout(timer);scope.stop();delete win.__chatguardInstalled;});
+    ctx.onInvalidated(()=>{observer.disconnect();clearTimeout(timer);scope.stop();indicator.destroy();delete win.__chatguardInstalled;});
     ctx.addEventListener(window,'chatguard-demo-reset',()=>{if(scope.state.conversation?.source==='demo'){scope.stop('Đã làm lại kịch bản. Bật lại bảo vệ để bắt đầu phiên mới.');publish();}});
-    const onMessage=(message:{type:string;allowFacebook?:boolean;id?:string;conversationId?:string;historyLimit?:number},sender:{id?:string})=>{
+    const onMessage=(message:{type:string;allowFacebook?:boolean;id?:string;conversationId?:string;historyLimit?:number;sessionId?:string;indicator?:Indicator},sender:{id?:string})=>{
       if(sender.id!==browser.runtime.id)return;
+      if(message.type==='GUARD_STATUS') {
+        if(message.indicator?.kind==='off'){indicator.destroy();return Promise.resolve({ok:true});}
+        if(scope.state.status==='watching'&&message.sessionId===scope.state.sessionId&&message.conversationId===scope.state.conversation?.id&&message.indicator)indicator.render(message.indicator);
+        return Promise.resolve({ok:true});
+      }
       if(message.type==='GUARD_DESCRIBE') {
         const available=choices();return Promise.resolve({readerBuild:READER_BUILD,conversations:available,conversation:scope.state.conversation||(available.length===1?available[0]:null),snapshot:scope.state});
       }

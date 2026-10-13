@@ -1,0 +1,66 @@
+const {chromium}=require('playwright');
+const fs=require('node:fs');const os=require('node:os');const path=require('node:path');const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../../../..');
+const token=fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_API_TOKEN=(.*)$/m)[1].trim();
+(async()=>{
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'chatguard-background-'));
+  const extension=root+'/apps/extension/.output/chrome-mv3';
+  const context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE,ignoreDefaultArgs:['--disable-extensions'],args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`],viewport:{width:1100,height:800}});
+  const errors=[];let worker,panel;
+  try {
+    context.setDefaultTimeout(20000);
+    worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');const id=new URL(worker.url()).host;
+    const demo=await context.newPage();demo.on('pageerror',e=>errors.push(e.message));await demo.goto('http://127.0.0.1:8000/demo/#friend');await demo.locator('#message').waitFor();
+    panel=await context.newPage();panel.on('pageerror',e=>errors.push(e.message));await panel.goto(`chrome-extension://${id}/sidepanel.html`);
+    await panel.getByLabel('Token máy chủ local').fill(token);await panel.getByLabel('Tần suất kiểm tra').selectOption('5');await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
+    await demo.bringToFront();await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());
+    const tab=await worker.evaluate(async()=>(await chrome.storage.session.get('selectedTab')).selectedTab);
+    const getState=()=>worker.evaluate(async tab=>(await chrome.storage.session.get(`tab:${tab}`))[`tab:${tab}`],tab);
+    const waitState=async predicate=>{const end=Date.now()+20000;while(Date.now()<end){const s=await getState();if(predicate(s))return s;await new Promise(r=>setTimeout(r,150));}throw new Error('Background state did not reach expected condition');};
+    const send=async text=>{await demo.locator('#message').fill(text);await demo.locator('#composer button').click();};
+    await panel.close();panel=undefined;
+    await send('Chào bạn, mình muốn hỏi lịch học.');let state=await waitState(s=>s?.result?.level==='no_signal');const session=state.snapshot.sessionId;
+    assert.equal(await worker.evaluate(tab=>chrome.action.getBadgeText({tabId:tab}),tab),'•');
+    console.log('PASS: panel closed, first analysis completes and neutral badge appears.');
+    const firstCompleted=state.completedAt;
+    for(let i=1;i<=4;i++)await send(`Tin bình thường tiếp theo ${i}`);
+    state=await waitState(s=>s?.pendingIds?.length===4&&s.waitingUntil);
+    await new Promise(r=>setTimeout(r,2200));assert.equal((await getState()).completedAt,firstCompleted);
+    await send('Tin bình thường thứ năm');state=await waitState(s=>s?.completedAt>firstCompleted&&s.pendingIds?.length===0);assert.equal(state.result.analyzed_count,6);
+    console.log('PASS: 4 messages wait; fifth message triggers one grouped analysis without panel.');
+    await send('Gửi mã OTP cho chị để nhận việc.');state=await waitState(s=>s?.result?.level==='high_concern');
+    assert.equal(await worker.evaluate(tab=>chrome.action.getBadgeText({tabId:tab}),tab),'!');
+    await demo.locator('[data-chatguard-indicator][data-state="high_concern"]').waitFor();
+    fs.mkdirSync(root+'/outputs',{recursive:true});await demo.screenshot({path:root+'/outputs/chatguard-background-warning.png'});
+    console.log('PASS: priority request bypasses batch count, warning badge and page indicator appear while panel is closed.');
+    panel=await context.newPage();panel.on('pageerror',e=>errors.push(e.message));await panel.goto(`chrome-extension://${id}/sidepanel.html`);await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).waitFor();assert.equal((await getState()).snapshot.sessionId,session);await panel.close();panel=undefined;
+    await send('Tin bình thường còn lại, chờ lượt gộp.');state=await waitState(s=>s?.waitingUntil&&s.pendingIds?.length===1);
+    const beforeRestart=state.completedAt;
+    assert.ok(await worker.evaluate(tab=>chrome.alarms.get(`chatguard:analyze:${tab}`),tab));
+    // Only this disposable browser/profile is addressed. No authenticated user browser or account.
+    const control=await context.newPage();await control.goto(`chrome-extension://${id}/background.js`);
+    const cdp=await context.newCDPSession(control);const versions=new Map();const transitions=[];
+    cdp.on('ServiceWorker.workerVersionUpdated',event=>{for(const version of event.versions){versions.set(version.versionId,version);if(version.scriptURL===`chrome-extension://${id}/background.js`)transitions.push(version.runningStatus);}});
+    context.on('serviceworker',value=>{if(value.url()===`chrome-extension://${id}/background.js`)worker=value;});
+    await cdp.send('ServiceWorker.enable');await new Promise(r=>setTimeout(r,300));
+    const version=[...versions.values()].find(v=>v.scriptURL===worker.url());
+    console.log('Own extension worker registration found:',!!version);
+    assert.ok(version,'ServiceWorker domain must expose this extension registration');
+    await cdp.send('ServiceWorker.stopWorker',{versionId:version.versionId});
+    const untilStopped=Date.now()+10000;while(!transitions.includes('stopped')&&Date.now()<untilStopped)await new Promise(r=>setTimeout(r,100));
+    console.log('Worker lifecycle transitions:',transitions);
+    assert.ok(transitions.includes('stopped'),'Worker must actually reach stopped, not merely receive a stop command');
+    console.log('Worker stopped with panel closed. Waiting for its persisted batch deadline...');
+    const untilRunning=Date.now()+70000;while(transitions.at(-1)!=='running'&&Date.now()<untilRunning)await new Promise(r=>setTimeout(r,100));
+    assert.equal(transitions.at(-1),'running');await control.close();
+    state=await waitState(s=>s?.completedAt>beforeRestart&&s.pendingIds?.length===0);
+    assert.equal(state.snapshot.sessionId,session);assert.equal(state.result.level,'high_concern');
+    console.log('PASS: alarm wakes a stopped worker, resumes the same selected session and completes analysis without a panel.');
+    panel=await context.newPage();await panel.goto(`chrome-extension://${id}/sidepanel.html`);await panel.getByRole('button',{name:'Tắt & xóa'}).click();
+    await demo.locator('[data-chatguard-indicator]').waitFor({state:'detached'});
+    assert.equal(await worker.evaluate(tab=>chrome.action.getBadgeText({tabId:tab}),tab),'');
+    assert.equal(await worker.evaluate(async()=> (await chrome.alarms.getAll()).filter(a=>a.name.startsWith('chatguard:')).length),0);
+    assert.deepEqual(errors,[]);console.log('PASS: stop clears indicator, toolbar badge, data and pending alarms.');
+  }catch(e){console.log('Page errors:',errors);if(panel&&!panel.isClosed())console.log(await panel.locator('body').innerText());throw e;}
+  finally{await context.close();assert.ok(path.resolve(profile).startsWith(path.join(os.tmpdir(),'chatguard-background-')));fs.rmSync(profile,{recursive:true,force:true});}
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -21,9 +21,10 @@ export type Assessment = {
   signals: { kind: string; title: string; evidence_ids: string[] }[];
   actions: string[]; limitations: string[];
 };
-export type Settings = { token: string; provider: 'rules' | 'groq'; externalConsent: boolean; facebookEnabled: boolean };
-export type TabState = { snapshot: Snapshot; result?: Assessment; error?: string; analyzing?: boolean; waitingUntil?:number; startedAt?:number; retryAt?:number; completedAt?:number };
+export type Settings = { token: string; provider: 'rules' | 'groq'; externalConsent: boolean; facebookEnabled: boolean; analysisEvery:1|5 };
+export type TabState = { snapshot: Snapshot; result?: Assessment; error?: string; analyzing?: boolean; waitingUntil?:number; startedAt?:number; retryAt?:number; completedAt?:number; pendingIds?:string[]; pendingSince?:number; hasAnalyzed?:boolean };
+export type Indicator = {kind:'off'|'watching'|'pending'|'waiting'|'review'|'high_concern'|'error';text:string;color:string;label:string};
 export type Health = {status:'ok'; groq_configured:boolean; groq_model:string; version:string};
 export const API = 'http://127.0.0.1:8000';
 export const EMPTY: Snapshot = {status:'idle', conversation:null, sessionId:'', revision:0, messages:[], reason:'Chưa chọn cuộc trò chuyện.', coverage:'Chưa đọc nội dung.'};
-export const DEFAULT_SETTINGS: Settings = { token:'', provider:'rules', externalConsent:false, facebookEnabled:false };
+export const DEFAULT_SETTINGS: Settings = { token:'', provider:'rules', externalConsent:false, facebookEnabled:false, analysisEvery:1 };

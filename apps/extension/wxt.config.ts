@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 function readerBuild() {
   const hash=createHash('sha256');
-  for(const file of ['entrypoints/guard.content.ts','lib/adapters.ts','lib/facebook.ts','lib/scope.ts','lib/types.ts','lib/reader-version.ts']) {
+  for(const file of ['entrypoints/guard.content.ts','lib/adapters.ts','lib/facebook.ts','lib/scope.ts','lib/types.ts','lib/reader-version.ts','lib/page-indicator.ts']) {
     hash.update(file).update(readFileSync(resolve(__dirname,file)));
   }
   return `reader-${hash.digest('hex').slice(0,10)}`;
@@ -36,9 +36,9 @@ export default defineConfig({
     version: '0.1.0',
     version_name: readerBuild(),
     description: 'Bật bảo vệ cho một cuộc trò chuyện và xem cảnh báo có bằng chứng.',
-    permissions: ['activeTab', 'scripting', 'storage', 'sidePanel'],
+    permissions: ['activeTab', 'scripting', 'storage', 'sidePanel', 'alarms'],
     host_permissions: ['http://127.0.0.1:8000/*'],
     action: { default_title: 'Mở ChatGuard VN' },
-    minimum_chrome_version: '116',
+    minimum_chrome_version: '120',
   }),
 });

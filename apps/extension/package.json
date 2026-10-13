@@ -10,7 +10,8 @@
     "test": "vitest run",
     "postinstall": "wxt prepare",
     "test:e2e": "node tests/e2e/smoke.cjs",
-    "test:e2e:facebook": "node tests/e2e/facebook.cjs"
+    "test:e2e:facebook": "node tests/e2e/facebook.cjs",
+    "test:e2e:background": "node tests/e2e/background.cjs"
   },
   "dependencies": {
     "react": "^19.3.0",

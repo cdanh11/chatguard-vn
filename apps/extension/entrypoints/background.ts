@@ -2,6 +2,7 @@ import { browser } from 'wxt/browser';
 import { API, DEFAULT_SETTINGS, type Assessment, type Settings, type Snapshot, type TabState } from '../lib/types';
 import { isCurrent } from '../lib/scope';
 import { GROQ_INTERVAL_MS, retryDelay, selectContext, validAssessment } from '../lib/analysis-policy';
+import {changedIds,indicatorFor,nextAnalysisAt,priorityChange} from '../lib/monitoring';
 
 export default defineBackground(() => {
   const timers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -14,6 +15,7 @@ export default defineBackground(() => {
     return next;
   }
   const stateKey = (tab:number) => `tab:${tab}`;
+  const alarmKey = (tab:number) => `chatguard:analyze:${tab}`;
   const getSettings = async ():Promise<Settings> => {
     const settings={...DEFAULT_SETTINGS, ...((await browser.storage.session.get('settings')).settings as Partial<Settings> | undefined)};
     // Provider changes revoke external consent, including settings saved by an older extension build.
@@ -24,8 +26,18 @@ export default defineBackground(() => {
     return settings;
   };
   const getState = async (tab:number):Promise<TabState | undefined> => (await browser.storage.session.get(stateKey(tab)))[stateKey(tab)] as TabState | undefined;
-  const putState = async (tab:number, value:TabState) => browser.storage.session.set({[stateKey(tab)]:value});
-  const cancel = (tab:number) => {clearTimeout(timers.get(tab)); timers.delete(tab); aborters.get(tab)?.abort(); aborters.delete(tab);};
+  async function updateIndicator(tab:number,state?:TabState) {
+    const indicator=indicatorFor(state);
+    await Promise.allSettled([
+      browser.action.setBadgeText({tabId:tab,text:indicator.text}),
+      browser.action.setBadgeBackgroundColor({tabId:tab,color:indicator.color}),
+      browser.action.setTitle({tabId:tab,title:indicator.label}),
+      browser.tabs.sendMessage(tab,{type:'GUARD_STATUS',sessionId:state?.snapshot.sessionId,conversationId:state?.snapshot.conversation?.id,indicator}),
+    ]);
+  }
+  const putState = async (tab:number, value:TabState) => {await browser.storage.session.set({[stateKey(tab)]:value});await updateIndicator(tab,value);};
+  const cancel = async (tab:number) => {clearTimeout(timers.get(tab)); timers.delete(tab); aborters.get(tab)?.abort(); aborters.delete(tab);await browser.alarms.clear(alarmKey(tab));};
+  async function removeState(tab:number) {await cancel(tab);await browser.storage.session.remove(stateKey(tab));await updateIndicator(tab);}
   async function health(token:string) {
     if(!token.trim()) throw new Error('Nhập token máy chủ trước.');
     let response:Response;
@@ -36,15 +48,29 @@ export default defineBackground(() => {
     if(data.status!=='ok'||typeof data.groq_configured!=='boolean') throw new Error('Phản hồi backend không hợp lệ.');
     return data;
   }
-  function arm(tab:number,snapshot:Snapshot,due:number) {
+  async function fire(tab:number) {
+    const snapshot=await transaction(async()=>{
+      const state=await getState(tab);
+      if(!state||state.snapshot.status!=='watching'||state.snapshot.availability==='waiting'||!state.waitingUntil){await browser.alarms.clear(alarmKey(tab));return;}
+      if(state.waitingUntil>Date.now()+50){await arm(tab,state.waitingUntil);return;}
+      clearTimeout(timers.get(tab));timers.delete(tab);await browser.alarms.clear(alarmKey(tab));return state.snapshot;
+    });
+    if(snapshot)await analyze(tab,snapshot);
+  }
+  async function arm(tab:number,due:number) {
     clearTimeout(timers.get(tab));
-    timers.set(tab,setTimeout(()=>{timers.delete(tab);void analyze(tab,snapshot);},Math.max(0,due-Date.now())));
+    // Timers are responsive while awake; the persisted alarm survives worker suspension.
+    await browser.alarms.create(alarmKey(tab),{when:Math.max(Date.now()+30000,due)});
+    timers.set(tab,setTimeout(()=>{timers.delete(tab);void fire(tab);},Math.max(0,due-Date.now())));
   }
   async function queue(tab:number,snapshot:Snapshot,previous?:TabState) {
     const settings=await getSettings();
-    const cooldown=Number((await browser.storage.session.get('groqNextAt')).groqNextAt)||0;
-    const due=Math.max(Date.now()+1800,settings.provider==='groq'?cooldown:0);
-    await putState(tab,{snapshot,waitingUntil:due,result:previous?.result,completedAt:previous?.completedAt});arm(tab,snapshot,due);
+    const cooldownKey=settings.provider==='groq'?'groqNextAt':'rulesNextAt';
+    const cooldown=Number((await browser.storage.session.get(cooldownKey))[cooldownKey])||0;
+    const now=Date.now();const pendingIds=previous?.pendingIds||snapshot.messages.map(m=>m.id);
+    const pendingSince=previous?.pendingSince||now;
+    const due=Math.max(nextAnalysisAt(now,settings.analysisEvery===5?5:1,pendingIds.length,pendingSince,!!previous?.hasAnalyzed,priorityChange(snapshot.messages,pendingIds),previous?.waitingUntil),cooldown);
+    await putState(tab,{snapshot,waitingUntil:due,result:previous?.result,completedAt:previous?.completedAt,pendingIds,pendingSince,hasAnalyzed:previous?.hasAnalyzed});await arm(tab,due);
   }
   function supported(url:string) {
     try {
@@ -66,15 +92,17 @@ export default defineBackground(() => {
     const settings = await transaction(async()=>{
       const current = await getState(tab);
       if (!current || !isCurrent(current.snapshot,context)) return;
+      if(current.analyzing)return;
       const settings = await getSettings();
       if (!settings.token) {await putState(tab,{snapshot,error:'Nhập token máy chủ trong cấu hình trước khi phân tích.'});return;}
-      if(settings.provider==='groq') {
-        const next=Number((await browser.storage.session.get('groqNextAt')).groqNextAt)||0;
-        if(next>Date.now()) {await putState(tab,{snapshot,waitingUntil:next});arm(tab,snapshot,next);return;}
-        await browser.storage.session.set({groqNextAt:Date.now()+GROQ_INTERVAL_MS});
+      {
+        const cooldownKey=settings.provider==='groq'?'groqNextAt':'rulesNextAt';
+        const next=Number((await browser.storage.session.get(cooldownKey))[cooldownKey])||0;
+        if(next>Date.now()) {await putState(tab,{...current,waitingUntil:next});await arm(tab,next);return;}
+        await browser.storage.session.set({[cooldownKey]:Date.now()+(settings.provider==='groq'?GROQ_INTERVAL_MS:3100)});
       }
       aborters.set(tab,abort);
-      await putState(tab,{snapshot,result:current.result,completedAt:current.completedAt,analyzing:true,startedAt:Date.now()});
+      await putState(tab,{...current,waitingUntil:undefined,analyzing:true,startedAt:Date.now()});
       return settings;
     });
     if (!settings || abort.signal.aborted) return;
@@ -99,13 +127,13 @@ export default defineBackground(() => {
       if(!isCurrent(snapshot,result)) throw new Error('Kết quả không khớp phiên phân tích. Bấm thử lại.');
       await transaction(async()=>{
         const latest = await getState(tab);
-        if (!abort.signal.aborted && latest && isCurrent(latest.snapshot,result)) await putState(tab,{snapshot:latest.snapshot,result,completedAt:Date.now()});
+        if (!abort.signal.aborted && latest && isCurrent(latest.snapshot,result)) await putState(tab,{snapshot:latest.snapshot,result,completedAt:Date.now(),hasAnalyzed:true,pendingIds:[]});
       });
     } catch (error) {
       await transaction(async()=>{
         const latest = await getState(tab);
         if (!abort.signal.aborted && latest && isCurrent(latest.snapshot,context)) {
-          await putState(tab,{snapshot:latest.snapshot,result:latest.result,completedAt:latest.completedAt,retryAt,error:error instanceof Error ? error.message : 'Không kết nối được máy chủ.'});
+          await putState(tab,{...latest,analyzing:undefined,startedAt:undefined,retryAt,error:error instanceof Error ? error.message : 'Không kết nối được máy chủ.'});
         }
       });
     } finally {if (aborters.get(tab) === abort) aborters.delete(tab);}
@@ -119,8 +147,8 @@ export default defineBackground(() => {
       const previous = await getState(tab);
       if (snapshot.status === 'watching' && previous?.snapshot.sessionId === snapshot.sessionId && previous.snapshot.revision > snapshot.revision) return;
       if(previous&&snapshot.status==='watching'&&previous.snapshot.sessionId===snapshot.sessionId&&previous.snapshot.revision===snapshot.revision) {
-        if(snapshot.availability==='waiting'){cancel(tab);await putState(tab,{snapshot,result:previous.result,completedAt:previous.completedAt});}
-        else if(previous.snapshot.availability==='waiting'&&!previous.result&&snapshot.messages.length)await queue(tab,snapshot);
+        if(snapshot.availability==='waiting'){await cancel(tab);await putState(tab,{...previous,snapshot,waitingUntil:undefined,analyzing:undefined});}
+        else if(previous.snapshot.availability==='waiting'&&(previous.pendingIds?.length||!previous.result)&&snapshot.messages.length)await queue(tab,snapshot,previous);
         else await putState(tab,{...previous,snapshot});
         return {ok:true};
       }
@@ -128,10 +156,13 @@ export default defineBackground(() => {
       // scope changes and truncated old context invalidate its supporting text.
       const retain=previous?.result&&previous.snapshot.sessionId===snapshot.sessionId&&previous.snapshot.conversation?.id===snapshot.conversation?.id
         &&previous.snapshot.messages.every(old=>snapshot.messages.some(m=>m.id===old.id&&m.sender===old.sender&&m.text===old.text))?previous:undefined;
-      cancel(tab);
-      await putState(tab,{snapshot,result:retain?.result,completedAt:retain?.completedAt});
+      const sameSession=previous?.snapshot.sessionId===snapshot.sessionId;
+      const pendingIds=[...new Set([...(sameSession?previous?.pendingIds||[]:[]),...changedIds(sameSession?previous?.snapshot.messages||[]:[],snapshot.messages)])].slice(-300);
+      const next:TabState={snapshot,result:retain?.result,completedAt:retain?.completedAt,pendingIds,pendingSince:sameSession?previous?.pendingSince:undefined,hasAnalyzed:sameSession?previous?.hasAnalyzed:false,waitingUntil:sameSession?previous?.waitingUntil:undefined};
+      await cancel(tab);
+      await putState(tab,next);
       if (snapshot.status === 'watching' && snapshot.availability!=='waiting' && snapshot.messages.length) {
-        await queue(tab,snapshot,retain);
+        await queue(tab,snapshot,next);
       }
       return {ok:true};
     }
@@ -143,16 +174,15 @@ export default defineBackground(() => {
     if (message?.type === 'SETTINGS_SAVE') {
       const s = message.settings as Settings;
       if (!s || typeof s.token !== 'string' || s.token.length > 200 || !['rules','groq'].includes(s.provider)) throw new Error('Cấu hình không hợp lệ.');
-      for (const tab of timers.keys()) cancel(tab);
-      for (const tab of aborters.keys()) cancel(tab);
+      for (const tab of new Set([...timers.keys(),...aborters.keys()])) await cancel(tab);
       // Changing provider/consent stops all sessions; the next start requires an explicit action.
       const stored = await browser.storage.session.get(null);
       for (const key of Object.keys(stored).filter(k=>k.startsWith('tab:'))) {
         const tab=Number(key.slice(4));
         try {await browser.tabs.sendMessage(tab,{type:'GUARD_STOP'});} catch {}
-        await browser.storage.session.remove(key);
+        await removeState(tab);
       }
-      await browser.storage.session.set({settings:{token:s.token.trim(),provider:s.provider,externalConsent:!!s.externalConsent,facebookEnabled:!!s.facebookEnabled}});
+      await browser.storage.session.set({settings:{token:s.token.trim(),provider:s.provider,externalConsent:!!s.externalConsent,facebookEnabled:!!s.facebookEnabled,analysisEvery:s.analysisEvery===5?5:1}});
       return {ok:true};
     }
     if (message?.type === 'ATTACH') {
@@ -160,7 +190,7 @@ export default defineBackground(() => {
       if (!tab?.id || !supported(tab.url || '')) return {error:'Mở http://127.0.0.1:8000/demo/#ctv hoặc một cuộc Facebook web.'};
       const stored=await browser.storage.session.get(null);
       for(const key of Object.keys(stored).filter(key=>key.startsWith('tab:')&&key!==stateKey(tab.id!))) {
-        const old=Number(key.slice(4));cancel(old);
+        const old=Number(key.slice(4));await removeState(old);
         try {await browser.tabs.sendMessage(old,{type:'GUARD_STOP'});} catch {}
         await browser.storage.session.remove([key,`attached:${old}`,`attachedUrl:${old}`]);
       }
@@ -172,7 +202,7 @@ export default defineBackground(() => {
         try { const info=await readerInfo(tab.id);return {tabId:tab.id,...info}; }
         catch { /* A missing/older reader needs a fresh explicit attachment. */ }
       }
-      cancel(tab.id);await browser.storage.session.remove(stateKey(tab.id));
+      await removeState(tab.id);
       await browser.storage.session.set({[`attached:${tab.id}`]:true,[`attachedUrl:${tab.id}`]:tab.url});
       await browser.scripting.executeScript({target:{tabId:tab.id},files:['/content-scripts/guard.js']});
       const info = await readerInfo(tab.id);
@@ -184,8 +214,8 @@ export default defineBackground(() => {
       let state=await getState(tab);
       if(state?.snapshot.status==='watching') {
         if(state.analyzing&&Date.now()-(state.startedAt||0)>35000) {
-          cancel(tab);state={snapshot:state.snapshot,error:'Lượt phân tích bị gián đoạn. Bấm thử lại để tiếp tục.'};await putState(tab,state);
-        } else if(state.waitingUntil&&!timers.has(tab)) arm(tab,state.snapshot,state.waitingUntil);
+          await cancel(tab);state={...state,analyzing:undefined,error:'Lượt phân tích bị gián đoạn. Bấm thử lại để tiếp tục.'};await putState(tab,state);
+        } else if(state.waitingUntil&&!timers.has(tab)) await arm(tab,state.waitingUntil);
       }
       return {state};
     }
@@ -199,19 +229,41 @@ export default defineBackground(() => {
       if(s.provider==='groq'&&!ready.groq_configured) return {error:'Groq chưa được cấu hình hợp lệ; điền GROQ_API_KEY rồi khởi động lại backend.'};
       return browser.tabs.sendMessage(tab,{type:'GUARD_START',allowFacebook:s.facebookEnabled,conversationId:message.conversationId,historyLimit:message.historyLimit===300?300:100});
     }
-    if (message.type === 'STOP') {cancel(tab); await browser.storage.session.remove(stateKey(tab)); return browser.tabs.sendMessage(tab,{type:'GUARD_STOP'});}
+    if (message.type === 'STOP') {await removeState(tab);return browser.tabs.sendMessage(tab,{type:'GUARD_STOP'});}
     if (message.type === 'RETRY') {
       const state = await getState(tab);
       if(state?.retryAt&&state.retryAt>Date.now()) return {error:'Đang chờ hết hạn mức. Thử lại sau thời gian hiển thị.'};
-      if (state?.snapshot.status === 'watching' && state.snapshot.messages.length) {cancel(tab);await queue(tab,state.snapshot,state);}
+      if (state?.snapshot.status === 'watching' && state.snapshot.messages.length) {await cancel(tab);await queue(tab,state.snapshot,{...state,hasAnalyzed:false,waitingUntil:undefined});}
       return {ok:true};
     }
     if(message.type==='FOCUS') return browser.tabs.sendMessage(tab,{type:'GUARD_FOCUS',id:String(message.id||'')});
     if(message.type==='HISTORY') return browser.tabs.sendMessage(tab,{type:'GUARD_HISTORY'});
   }
-  browser.runtime.onMessage.addListener((message,sender) => transaction(()=>handle(message,sender)).catch(error => ({error:error instanceof Error ? error.message : 'Không thực hiện được. Tải lại tab, kết nối lại hoặc kiểm tra máy chủ.'})));
+  browser.runtime.onMessage.addListener((message,sender) => {
+    if(message?.type==='GUARD_OPEN_PANEL'&&sender.id===browser.runtime.id&&typeof sender.tab?.id==='number'&&supported(sender.tab.url||'')) {
+      // Called directly from the in-page button's user gesture, before any asynchronous work.
+      return browser.sidePanel.open({tabId:sender.tab.id}).then(()=>({ok:true})).catch(()=>({error:'Bấm biểu tượng ChatGuard trên thanh tiện ích để mở.'}));
+    }
+    return transaction(()=>handle(message,sender)).catch(error => ({error:error instanceof Error ? error.message : 'Không thực hiện được. Tải lại tab, kết nối lại hoặc kiểm tra máy chủ.'}));
+  });
+  browser.alarms.onAlarm.addListener(alarm=>{if(alarm.name.startsWith('chatguard:analyze:')){const tab=Number(alarm.name.slice('chatguard:analyze:'.length));if(Number.isInteger(tab))void fire(tab);}});
+  // Rehydrate scheduling once on every worker start, independently of a side panel.
+  void transaction(async()=>{
+    const stored=await browser.storage.session.get(null);
+    for(const key of Object.keys(stored).filter(k=>k.startsWith('tab:'))) {
+      const tab=Number(key.slice(4));const state=stored[key] as TabState;
+      if(state.snapshot?.status!=='watching'){await updateIndicator(tab);continue;}
+      try {
+        const info=await readerInfo(tab);
+        if(info.snapshot?.status!=='watching'||info.snapshot.sessionId!==state.snapshot.sessionId) {await removeState(tab);continue;}
+        if(state.analyzing){await queue(tab,state.snapshot,{...state,analyzing:undefined,waitingUntil:undefined});}
+        else if(state.waitingUntil&&state.snapshot.availability!=='waiting'){await arm(tab,state.waitingUntil);await updateIndicator(tab,state);}
+        else await updateIndicator(tab,state);
+      }catch{await removeState(tab);}
+    }
+  });
   browser.action.onClicked.addListener(tab => {if(tab.id){void browser.sidePanel.open({tabId:tab.id});void transaction(()=>handle({type:'ATTACH',activeTabId:tab.id},{url:browser.runtime.getURL('/sidepanel.html')})).catch(()=>{});}});
-  browser.tabs.onRemoved.addListener(tab => {void transaction(async()=>{cancel(tab);await browser.storage.session.remove([stateKey(tab),`attached:${tab}`,`attachedUrl:${tab}`]);});});
+  browser.tabs.onRemoved.addListener(tab => {void transaction(async()=>{await removeState(tab);await browser.storage.session.remove([`attached:${tab}`,`attachedUrl:${tab}`]);});});
   browser.tabs.onUpdated.addListener((tab,change,info) => {
     if (change.status !== 'loading') return;
     void transaction(async()=>{
@@ -222,7 +274,7 @@ export default defineBackground(() => {
       if (oldUrl && nextUrl && oldUrl !== nextUrl && oldUrl.split('#')[0] === nextUrl.split('#')[0]) {
         await browser.storage.session.set({[key]:nextUrl});return;
       }
-      cancel(tab);await browser.storage.session.remove([stateKey(tab),`attached:${tab}`,key]);
+      await removeState(tab);await browser.storage.session.remove([`attached:${tab}`,key]);
     });
   });
 });
