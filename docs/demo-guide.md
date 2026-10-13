@@ -18,8 +18,8 @@ Giữ cửa sổ backend mở. Token máy chủ được in để nhập vào ti
 3. Ghim ChatGuard VN trên thanh tiện ích.
 4. Mở `http://127.0.0.1:8000/demo/#ctv`.
 5. Bấm biểu tượng tiện ích để mở Side Panel. Nhập token máy chủ, giữ chế độ bộ luật và lưu.
-6. Bấm **Kết nối tab đang mở**, rồi **Bật bảo vệ cuộc này**.
-7. Phát từng tin. Lúc đầu chưa có nội dung; khi tổ hợp dấu hiệu xuất hiện, cảnh báo kèm câu gốc được hiển thị.
+6. Nếu chưa thấy cuộc trò chuyện, bấm **Kết nối tab đang mở**. Kiểm tra tên, rồi **Bật bảo vệ cuộc này**.
+7. Phát từng tin. Khi tổ hợp dấu hiệu xuất hiện, cảnh báo được hiển thị. Mở **Xem N tin liên quan** để xem câu gốc.
 8. Chuyển sang Minh: phiên dừng và nội dung cũ bị xóa. Phát tin của Minh không được tự phân tích.
 9. Quay lại CTV, bấm bật lại. Để kết thúc bấm **Tắt & xóa**.
 
@@ -57,7 +57,7 @@ Bộ đọc thử nghiệm hiện tập trung vào ô chat nhỏ trên Facebook.
 
 Bạn tự đăng nhập. Dùng tài khoản thứ hai do bạn sở hữu hoặc một người đồng ý tham gia. Có thể lấy kịch bản từ `apps/api/demo/scenarios.json`; không dùng link, OTP hay giao dịch thật.
 
-Bật tùy chọn Facebook, kết nối tab, chọn đúng một đối tượng và bật bảo vệ. Danh sách chỉ lấy metadata, không đọc nội dung các cuộc chưa chọn. Nếu định danh header và tin không khớp, không đọc. Đóng ô chat giữ lựa chọn nhưng có thể gián đoạn nhận tin; mở lại đúng cuộc để nối lại. Cần kiểm chứng luồng extension thật, không suy ra từ demo/fixture.
+Kết nối tab, chọn đúng một đối tượng và bật bảo vệ; bộ đọc Facebook được bật qua thao tác này. Danh sách chỉ lấy metadata, không đọc nội dung các cuộc chưa chọn. Nếu định danh header và tin không khớp, không đọc. Đóng ô chat giữ lựa chọn nhưng có thể gián đoạn nhận tin; mở lại đúng cuộc để nối lại. Xem [giao diện và thao tác](extension-ux.md). Cần kiểm chứng luồng extension thật, không suy ra từ demo/fixture.
 
 Nếu thử một mình và chưa có tài khoản thứ hai, dùng phòng thử local để trình bày toàn bộ vòng đời. Không cần tạo tài khoản giả hay đưa thông tin đăng nhập cho người khác.
 

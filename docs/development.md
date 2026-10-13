@@ -7,7 +7,7 @@ Thay file production trên đĩa không tự cập nhật extension đã đượ
 1. Chạy `scripts/start-backend.ps1 -Dev` và `scripts/start-extension-dev.ps1` ở hai terminal. Không chạy thêm nếu hai server đã hoạt động. Backend lắng nghe ở loopback cổng 8000, WXT ở loopback cổng 3001; script không mở profile trình duyệt mới.
 2. Trong `brave://extensions`, tắt bản ChatGuard production, bật Developer mode và chọn **Load unpacked** với thư mục `apps/extension/.output/chrome-mv3-dev`. Không dùng đồng thời hai bản. Người dùng cần thao tác bước này vì công cụ browser hiện tại không truy cập được trang quản lý extension.
 3. Tải lại đúng tab Facebook thử, bấm biểu tượng ChatGuard, lưu token local và cấu hình, chọn đối tượng rồi bật bảo vệ. Khóa Groq chỉ nằm trên backend. Consent Groq cần được chọn rõ ràng.
-4. Cuối panel phải ghi **DEV**, version và `reader-…`. Bản production ghi **Bản build**. Mã reader được tạo từ nội dung các file bộ đọc, không chứa dữ liệu hoặc định danh người dùng.
+4. Mở cài đặt → **Thông tin kỹ thuật** để xem **DEV**, version và `reader-…`. Bản production ghi **Bản build**. Mã reader được tạo từ nội dung các file bộ đọc, không chứa dữ liệu hoặc định danh người dùng.
 
 ## Trong lúc sửa mã
 

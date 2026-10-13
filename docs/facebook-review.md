@@ -24,7 +24,7 @@ Người dùng báo mở extension rồi đóng chat làm mất đối tượng.
 
 ## Chưa coi là hoàn tất
 
-- Bản DEV đã nhận tin mới tự động, nhưng bản sửa ATTACH mới cần bật lại phiên và kiểm chứng đóng/mở trên Brave. Việc cập nhật background có thể ngắt phiên một lần; khác với mở panel trong cùng bản đang chạy.
+- Người dùng đã xác nhận giữ theo dõi khi đóng chat sau sửa ATTACH. Phiên bản UX mới đã kiểm thử local, vẫn cần phản hồi sử dụng trực tiếp trên Brave. Cập nhật background có thể ngắt phiên một lần; khác với mở panel trong cùng bản đang chạy.
 - Chưa có 300 tin thật trong cuộc thử để xác minh đủ 300 trên Facebook. Kiểm thử đã đạt cho DOM mô phỏng tải từng đợt từ 30 lên 300 tin, không phải cam kết mọi tài khoản tải đủ lịch sử.
 - Không bảo đảm nhận tin trong lúc Facebook đã gỡ ô chat khỏi DOM, khi tab đóng, trình duyệt nghỉ hoặc service worker bị đình chỉ lâu. Panel có cơ chế phục hồi lượt chờ khi mở lại.
 - Giao diện tài khoản khác, chat nhóm, bố cục toàn trang, tiếng Anh, sửa/thu hồi qua mọi kiểu DOM và chất lượng AI trên tập độc lập cần kiểm chứng thêm.

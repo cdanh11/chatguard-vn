@@ -5,10 +5,12 @@
 1. Giữ backend local đang chạy. Nạp/reload bản build vào Brave hoặc Chrome.
 2. Mở ô chat nhỏ của người cần bảo vệ trên Facebook, bấm biểu tượng ChatGuard.
 3. Biểu tượng mở Side Panel và kết nối tab để lấy metadata các cuộc đang mở; chưa đọc nội dung chat.
-4. Lưu token local, bật tùy chọn bộ đọc Facebook. Chọn **Đối tượng theo dõi** và mức lịch sử 100 hoặc 300.
+4. Lần đầu lưu token local trong cài đặt. Nếu có nhiều người, chọn **Đối tượng theo dõi**; nếu chỉ có một, kiểm tra tên hiện trên thẻ. Mặc định 100 tin, có thể chọn 300 trong **Tùy chọn cuộc trò chuyện** trước khi bật.
 5. Bấm **Bật bảo vệ cuộc này**. Tên người được chọn khóa trong panel; các ô khác không được đọc.
-6. Có thể bấm **Nạp lịch sử của người đã chọn**. Tiện ích chỉ cuộn trong log tin của cuộc đã xác minh, tối đa 32 lượt thử, dừng khi đủ ngân sách hoặc không tải thêm được.
-7. **Tắt & xóa** hủy tác vụ, xóa ngữ cảnh và cảnh báo; cần tắt trước khi chọn người mới.
+6. Trong **Tùy chọn cuộc trò chuyện**, có thể bấm **Đọc thêm tin cũ**. Tiện ích chỉ cuộn trong log tin của cuộc đã xác minh, tối đa 32 lượt thử, dừng khi đủ ngân sách hoặc không tải thêm được.
+7. **Tắt & xóa** hủy tác vụ, xóa ngữ cảnh và cảnh báo. **Đổi người** cũng dừng/xóa phiên rồi cho chọn người mới; chưa đọc người mới cho đến khi bấm bật.
+
+Bấm bảo vệ Facebook là thao tác cho phép bật bộ đọc cho cuộc đó; không cần bật công tắc Facebook riêng. Consent gửi tới Groq vẫn riêng biệt. Xem [trải nghiệm tiện ích](extension-ux.md).
 
 Nếu đang dùng bản build cũ, reload extension rồi tải lại Facebook. Content script đã chèn trong tab có thể vẫn là bản cũ dù các file build trên đĩa đã thay đổi. Extension reload có thể xóa token/cấu hình session; nhập lại token local trong `apps/api/.env` nếu cần, không nhập khóa Groq vào panel.
 

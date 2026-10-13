@@ -4,17 +4,20 @@ Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng 
 
 ## Bổ sung Brave và đồng bộ — 2026-10-14
 
+- Người dùng xác nhận bản sửa giữ đối tượng hoạt động khi đóng chat. Đây là phản hồi từ phiên Brave, tách biệt với kiểm thử fixture.
+- UX mới tách cài đặt khỏi theo dõi, thu gọn bằng chứng/tùy chọn và bật bộ đọc qua thao tác bảo vệ rõ ràng. Fixture đạt ở 360px: không tràn ngang, cảnh báo ở viewport đầu, mở/đóng cài đặt không reset phiên, đổi người chưa đọc trước khi bật.
+
 - Sau khi người dùng nạp DEV, API ghi nhận đúng cuộc được chọn: lượt đầu 5 tin/revision 2, lượt cập nhật tự động 20 tin/revision 6. Đã xác minh cập nhật tin mới ở phiên DEV; mức cảnh báo thay đổi theo ngữ cảnh, không dùng để suy ra accuracy.
-- Phát hiện mở toolbar chạy ATTACH và làm reset phiên. Đã sửa kết nối cùng tab cùng build để giữ phiên; regression popup fixture đạt khi kết nối lại đang bảo vệ và khi chat đã đóng. Chưa kiểm chứng bản sửa này trên Brave sau lần DEV tự cập nhật.
+- Phát hiện mở toolbar chạy ATTACH và làm reset phiên. Đã sửa kết nối cùng tab cùng build để giữ phiên; regression popup fixture đạt khi kết nối lại đang bảo vệ và khi chat đã đóng. Người dùng đã xác nhận đóng chat vẫn giữ theo dõi.
 - API status bổ sung dấu vân tay session và tối đa 12 mốc metadata trong RAM để phân biệt reset phiên; không trả session ID gốc. API 32 tests, typecheck/build và popup fixture đạt sau sửa.
 
 - Người dùng xác nhận 10 tin trong panel và có kết quả Groq sau reload. API local xác nhận lượt gần nhất có 10 tin, Groq/review và dấu vân tay đúng cuộc được chọn.
 - API: 32 tests đạt, gồm từ chối evidence self/unknown và làm sạch danh sách trống của Groq. Extension: 19 tests đạt; typecheck/build đạt.
 - Thêm dấu build reader, chặn bắt đầu khi reader không khớp, dọn listener của reader đã hủy và khôi phục đúng mức lịch sử khi mở lại panel.
-- Kiểm tra giao thức WXT local: thay reader phát lệnh reload extension; worker kết nối lại không gây vòng reload. Chưa nạp bản DEV vào Brave người dùng. Hướng dẫn: [Phát triển trên Brave](development.md).
+- Kiểm tra giao thức WXT local: thay reader phát lệnh reload extension; worker kết nối lại không gây vòng reload. Người dùng đã nạp DEV theo [hướng dẫn](development.md).
 - Groq thật với 4 tin tổng hợp có cả self và other: HTTP 200, high_concern, evidence chỉ thuộc other, giới hạn không rỗng. Không dùng một ca này làm độ chính xác của mô hình.
 - Hai kiểm thử trình duyệt đạt sau sửa: popup Facebook fixture và demo MVP. Thêm kiểm tra kết nối lại bộ đọc, mở lại panel giữ mức 300. Mock Groq dùng bằng chứng của other.
-- Tin tổng hợp mới giữa hai tài khoản đã tới ô chat Brave; probe chỉ đọc thấy 14 tin gồm tin mới. API chưa ghi nhận lượt phân tích Facebook tiếp theo trong thời gian quan sát. Cần tiếp tục kiểm tra phiên extension đang mở sau khi nạp bản mới; chưa xác nhận theo dõi tăng dần trên phiên đó.
+- Kiểm thử demo đạt: giữ cảnh báo trong thời gian gộp lượt Groq với nhãn đánh giá chưa cập nhật; sửa nội dung cũ làm bỏ đánh giá cũ; quota/thử lại, kết quả đến muộn, đổi tab, mất backend và consent vẫn hoạt động.
 
 ## Bổ sung Facebook — 2026-10-13
 
