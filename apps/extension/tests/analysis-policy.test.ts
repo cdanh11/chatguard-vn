@@ -14,5 +14,7 @@ describe('analysis policy',()=>{
     expect(validAssessment({...r,signals:[]},messages,'groq')).toBe(false);
     expect(validAssessment({...r,analyzed_count:30},messages,'groq')).toBe(false);
     expect(validAssessment({...r,signals:[{...r.signals[0],evidence_ids:['other-chat']}]},messages,'groq')).toBe(false);
+    expect(validAssessment(r,messages.map(m=>({...m,sender:'self' as const})),'groq')).toBe(false);
+    expect(validAssessment(r,messages.map(m=>({...m,sender:'unknown' as const})),'groq')).toBe(false);
   });
 });

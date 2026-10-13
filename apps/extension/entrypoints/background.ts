@@ -53,6 +53,13 @@ export default defineBackground(() => {
         (u.protocol === 'https:' && ['www.facebook.com','web.facebook.com','www.messenger.com','messenger.com'].includes(u.hostname));
     } catch {return false;}
   }
+  async function readerInfo(tab:number) {
+    const info=await browser.tabs.sendMessage(tab,{type:'GUARD_DESCRIBE'});
+    if(info?.readerBuild!==browser.runtime.getManifest().version_name) {
+      throw new Error('Bộ đọc trong tab khác bản extension. Tải lại Facebook rồi bấm biểu tượng ChatGuard và chọn lại người cần bảo vệ.');
+    }
+    return info;
+  }
   async function analyze(tab:number, snapshot:Snapshot) {
     const context = {conversation_id:snapshot.conversation!.id, session_id:snapshot.sessionId, revision:snapshot.revision};
     const abort = new AbortController();
@@ -76,7 +83,7 @@ export default defineBackground(() => {
     try {
       const response = await fetch(`${API}/api/analyze`, {
         method:'POST', headers:{'Content-Type':'application/json','X-ChatGuard-Token':settings.token},
-        body:JSON.stringify({...context,messages,provider:settings.provider,external_consent:settings.externalConsent}),
+        body:JSON.stringify({...context,messages,history_limit:snapshot.historyLimit||100,provider:settings.provider,external_consent:settings.externalConsent}),
         signal:AbortSignal.any([abort.signal,AbortSignal.timeout(28000)]),
       });
       if (!response.ok) {
@@ -108,12 +115,18 @@ export default defineBackground(() => {
       const tab = sender.tab?.id;
       if (typeof tab !== 'number' || !supported(sender.tab.url || '') || !(await browser.storage.session.get(`attached:${tab}`))[`attached:${tab}`]) return;
       const snapshot = message.snapshot as Snapshot;
-      if (!snapshot || !Array.isArray(snapshot.messages) || snapshot.messages.length > 100) return;
+      if (!snapshot || !Array.isArray(snapshot.messages) || snapshot.messages.length > 300) return;
       const previous = await getState(tab);
       if (snapshot.status === 'watching' && previous?.snapshot.sessionId === snapshot.sessionId && previous.snapshot.revision > snapshot.revision) return;
+      if(previous&&snapshot.status==='watching'&&previous.snapshot.sessionId===snapshot.sessionId&&previous.snapshot.revision===snapshot.revision) {
+        if(snapshot.availability==='waiting'){cancel(tab);await putState(tab,{snapshot,result:previous.result,completedAt:previous.completedAt});}
+        else if(previous.snapshot.availability==='waiting'&&!previous.result&&snapshot.messages.length)await queue(tab,snapshot);
+        else await putState(tab,{...previous,snapshot});
+        return {ok:true};
+      }
       cancel(tab);
       await putState(tab,{snapshot});
-      if (snapshot.status === 'watching' && snapshot.messages.length) {
+      if (snapshot.status === 'watching' && snapshot.availability!=='waiting' && snapshot.messages.length) {
         await queue(tab,snapshot);
       }
       return {ok:true};
@@ -139,7 +152,7 @@ export default defineBackground(() => {
       return {ok:true};
     }
     if (message?.type === 'ATTACH') {
-      const [tab] = await browser.tabs.query({active:true,currentWindow:true});
+      const tab=Number.isInteger(message.activeTabId)?await browser.tabs.get(message.activeTabId):(await browser.tabs.query({active:true,currentWindow:true}))[0];
       if (!tab?.id || !supported(tab.url || '')) return {error:'Mở http://127.0.0.1:8000/demo/#ctv hoặc một cuộc Facebook web.'};
       const stored=await browser.storage.session.get(null);
       for(const key of Object.keys(stored).filter(key=>key.startsWith('tab:')&&key!==stateKey(tab.id!))) {
@@ -148,9 +161,10 @@ export default defineBackground(() => {
         await browser.storage.session.remove([key,`attached:${old}`,`attachedUrl:${old}`]);
       }
       await browser.storage.session.set({selectedTab:tab.id});
+      cancel(tab.id);await browser.storage.session.remove(stateKey(tab.id));
       await browser.storage.session.set({[`attached:${tab.id}`]:true,[`attachedUrl:${tab.id}`]:tab.url});
       await browser.scripting.executeScript({target:{tabId:tab.id},files:['/content-scripts/guard.js']});
-      const info = await browser.tabs.sendMessage(tab.id,{type:'GUARD_DESCRIBE'});
+      const info = await readerInfo(tab.id);
       return {tabId:tab.id,...info};
     }
     const tab = Number(message?.tabId);
@@ -164,14 +178,15 @@ export default defineBackground(() => {
       }
       return {state};
     }
-    if (message.type === 'DESCRIBE') return browser.tabs.sendMessage(tab,{type:'GUARD_DESCRIBE'});
+    if (message.type === 'DESCRIBE') return readerInfo(tab);
     if (message.type === 'START') {
+      await readerInfo(tab);
       const s=await getSettings();
       if (!s.token) return {error:'Nhập và lưu token máy chủ trước.'};
       if (s.provider === 'groq' && !s.externalConsent) return {error:'Chưa đồng ý gửi ngữ cảnh tới Groq.'};
       const ready=await health(s.token);
       if(s.provider==='groq'&&!ready.groq_configured) return {error:'Groq chưa được cấu hình hợp lệ; điền GROQ_API_KEY rồi khởi động lại backend.'};
-      return browser.tabs.sendMessage(tab,{type:'GUARD_START',allowFacebook:s.facebookEnabled});
+      return browser.tabs.sendMessage(tab,{type:'GUARD_START',allowFacebook:s.facebookEnabled,conversationId:message.conversationId,historyLimit:message.historyLimit===300?300:100});
     }
     if (message.type === 'STOP') {cancel(tab); await browser.storage.session.remove(stateKey(tab)); return browser.tabs.sendMessage(tab,{type:'GUARD_STOP'});}
     if (message.type === 'RETRY') {
@@ -181,9 +196,10 @@ export default defineBackground(() => {
       return {ok:true};
     }
     if(message.type==='FOCUS') return browser.tabs.sendMessage(tab,{type:'GUARD_FOCUS',id:String(message.id||'')});
+    if(message.type==='HISTORY') return browser.tabs.sendMessage(tab,{type:'GUARD_HISTORY'});
   }
   browser.runtime.onMessage.addListener((message,sender) => transaction(()=>handle(message,sender)).catch(error => ({error:error instanceof Error ? error.message : 'Không thực hiện được. Tải lại tab, kết nối lại hoặc kiểm tra máy chủ.'})));
-  browser.action.onClicked.addListener(tab => {if (tab.id) void browser.sidePanel.open({tabId:tab.id});});
+  browser.action.onClicked.addListener(tab => {if(tab.id){void browser.sidePanel.open({tabId:tab.id});void transaction(()=>handle({type:'ATTACH',activeTabId:tab.id},{url:browser.runtime.getURL('/sidepanel.html')})).catch(()=>{});}});
   browser.tabs.onRemoved.addListener(tab => {void transaction(async()=>{cancel(tab);await browser.storage.session.remove([stateKey(tab),`attached:${tab}`,`attachedUrl:${tab}`]);});});
   browser.tabs.onUpdated.addListener((tab,change,info) => {
     if (change.status !== 'loading') return;

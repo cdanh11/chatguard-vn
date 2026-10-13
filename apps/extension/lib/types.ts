@@ -8,6 +8,10 @@ export type Snapshot = {
   messages: ChatMessage[];
   reason: string;
   coverage: string;
+  availability?: 'reading' | 'waiting';
+  historyLimit?: 100 | 300;
+  historyLoading?: boolean;
+  historyNote?: string;
 };
 export type Assessment = {
   conversation_id: string; session_id: string; revision: number;

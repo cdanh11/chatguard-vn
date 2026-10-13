@@ -25,7 +25,7 @@ export function validAssessment(value:unknown,messages:ChatMessage[],provider:Se
   if(!['no_signal','review','high_concern','insufficient_context'].includes(v.level)
     ||v.provider!==provider||v.analyzed_count!==messages.length||typeof v.summary!=='string'||!v.summary||v.summary.length>1200
     ||!strings(v.actions,6)||!strings(v.limitations,6)||!Array.isArray(v.signals)||v.signals.length>12) return false;
-  const ids=new Set(messages.map(m=>m.id));
+  const ids=new Set(messages.filter(m=>provider!=='groq'||m.sender==='other').map(m=>m.id));
   if(v.signals.some(s=>!s||typeof s.kind!=='string'||!s.kind||s.kind.length>80||typeof s.title!=='string'||!s.title||s.title.length>160
     ||!strings(s.evidence_ids,8)||!s.evidence_ids.length||s.evidence_ids.some(id=>!ids.has(id)))) return false;
   return !['review','high_concern'].includes(v.level)||v.signals.length>0;

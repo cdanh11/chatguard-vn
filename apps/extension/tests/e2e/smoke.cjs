@@ -118,7 +118,8 @@ const token = fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_AP
         const mode=globalThis.testMode;
         if(mode==='quota')return new Response(JSON.stringify({detail:'Hết quota thử nghiệm'}),{status:429,headers:{'Retry-After':'2'}});
         if(mode==='slow')await new Promise(resolve=>setTimeout(resolve,4000));
-        const result={...req,level:'high_concern',summary:'Kết quả mô phỏng để kiểm tra luồng',provider:'groq',analyzed_count:req.messages.length,signals:[{kind:'credential',title:'Yêu cầu mã truy cập',evidence_ids:[mode==='invalid'?'outside-scope':req.messages.at(-1).id]}],actions:[],limitations:['Kết quả mô phỏng mạng, không đo chất lượng AI.']};
+        const evidence=req.messages.find(m=>m.sender==='other');
+        const result={...req,level:'high_concern',summary:'Kết quả mô phỏng để kiểm tra luồng',provider:'groq',analyzed_count:req.messages.length,signals:[{kind:'credential',title:'Yêu cầu mã truy cập',evidence_ids:[mode==='invalid'?'outside-scope':evidence.id]}],actions:[],limitations:['Kết quả mô phỏng mạng, không đo chất lượng AI.']};
         return new Response(JSON.stringify(result),{status:200});
       };
     });

@@ -1,4 +1,10 @@
 import type { ChatMessage, Conversation } from './types';
+import {facebookThreads,selectedThread,facebookMessages} from './facebook';
+
+export function conversations(doc:Document,url:URL):Conversation[] {
+  if(['www.facebook.com','web.facebook.com','www.messenger.com','messenger.com'].includes(url.hostname))return facebookThreads(doc).map(t=>t.conversation);
+  const current=describe(doc,url);return current?[current]:[];
+}
 
 export function describe(doc: Document, url: URL): Conversation | null {
   if (url.hostname === '127.0.0.1' && url.port === '8000' && url.pathname.startsWith('/demo/')) {
@@ -8,6 +14,7 @@ export function describe(doc: Document, url: URL): Conversation | null {
     return {id, name:root.dataset.chatguardName || 'Hội thoại thử', source:'demo'};
   }
   if (!['www.facebook.com', 'web.facebook.com', 'www.messenger.com', 'messenger.com'].includes(url.hostname)) return null;
+  const threads=facebookThreads(doc);if(threads.length===1)return threads[0]!.conversation;
   const id = url.pathname.match(/\/(?:messages\/)?t\/([a-zA-Z0-9_-]+)\/?$/)?.[1];
   if (!id) return null;
   return {id:`facebook:${id}`, name:'Cuộc đang mở trên Facebook', source:'facebook',
@@ -28,22 +35,6 @@ export function readMessages(doc: Document, conversation: Conversation): { messa
       text:row.querySelector<HTMLElement>('[data-chatguard-text]')?.innerText || '',
     }))};
   }
-  // Deliberately fail closed on ambiguous layout. No network interception or hidden APIs.
-  const grids = [...doc.querySelectorAll<HTMLElement>('[role="main"] [role="grid"]')]
-    .filter(grid => visible(grid) && grid.querySelector('[role="row"]'));
-  if (grids.length !== 1) return {messages:[],error:'Không xác định được duy nhất vùng tin nhắn. Chưa thu thập nội dung.'};
-  const messages: ChatMessage[] = [];
-  for (const row of [...grids[0]!.querySelectorAll<HTMLElement>('[role="row"]')].slice(-100)) {
-    const label = row.getAttribute('aria-label') || '';
-    const sender = /^(you sent|bạn đã gửi|bạn:)/i.test(label) ? 'self' : /^(message from|tin nhắn từ)/i.test(label) ? 'other' : 'unknown';
-    const rawId = row.getAttribute('data-message-id') || row.getAttribute('data-id');
-    // Without a stable ID, collecting virtualized rows could silently merge or duplicate messages.
-    if (!rawId || rawId.length > 150) continue;
-    const texts = [...row.querySelectorAll<HTMLElement>('[dir="auto"]')]
-      .filter(el => !el.querySelector('[dir="auto"]') && !el.closest('[role="button"], [contenteditable="true"]'));
-    const text = texts.map(el => el.innerText).filter(Boolean).join('\n').trim();
-    if (text && text.length <= 4000) messages.push({id:`fb:${rawId}`, sender, text});
-  }
-  if (!messages.length) return {messages:[],error:'Giao diện chưa cung cấp ID tin ổn định cho bộ đọc này. Cần hiệu chỉnh trên Facebook thật; không đoán nội dung.'};
-  return {messages};
+  const thread=selectedThread(doc,conversation);
+  return thread?facebookMessages(thread):{messages:[],error:'Cuộc đã chọn hiện chưa có vùng tin được xác minh.'};
 }

@@ -9,13 +9,15 @@
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "postinstall": "wxt prepare",
-    "test:e2e": "node tests/e2e/smoke.cjs"
+    "test:e2e": "node tests/e2e/smoke.cjs",
+    "test:e2e:facebook": "node tests/e2e/facebook.cjs"
   },
   "dependencies": {
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@wxt-dev/module-react": "1.2.2",
