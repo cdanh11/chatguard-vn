@@ -1,4 +1,5 @@
 import hmac
+import hashlib
 import os
 import re
 import time
@@ -21,12 +22,13 @@ load_dotenv(ROOT / ".env")
 app = FastAPI(title="ChatGuard VN — Local MVP", version="0.1.0")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 requests_at: deque[float] = deque()
+activity: dict = {"completed": 0, "last": None}
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(_request: Request, _exc: RequestValidationError):
     # Do not echo chat text or secrets in errors.
-    return JSONResponse(status_code=422, content={"detail": "Dữ liệu không hợp lệ: tối đa 100 tin, 24.000 ký tự; ID tin phải duy nhất."})
+    return JSONResponse(status_code=422, content={"detail": "Dữ liệu không hợp lệ: mặc định 100 tin/24.000 ký tự, mở rộng 300 tin/72.000 ký tự; ID tin phải duy nhất."})
 
 
 @app.middleware("http")
@@ -35,9 +37,14 @@ async def request_guard(request: Request, call_next):
     if request.url.path.startswith("/api/") and origin and not re.fullmatch(r"chrome-extension://[a-p]{32}", origin):
         return JSONResponse(status_code=403, content={"detail": "Origin không được phép."})
     if request.url.path == "/api/analyze":
-        body = await request.body()
-        if len(body) > 160000:
-            return JSONResponse(status_code=413, content={"detail": "Yêu cầu quá lớn."})
+        chunks = []
+        size = 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > 400000:
+                return JSONResponse(status_code=413, content={"detail": "Yêu cầu quá lớn."})
+            chunks.append(chunk)
+        request._body = b"".join(chunks)
     return await call_next(request)
 
 
@@ -83,9 +90,20 @@ async def analyze(request: AnalyzeRequest):
         except Exception:
             # Never log prompts, provider bodies or URLs containing credentials.
             raise HTTPException(status_code=502, detail="Không nhận được kết quả AI hợp lệ. Kiểm tra hạn mức/kết nối; chưa có đánh giá mới.") from None
+    activity["completed"] += 1
+    activity["last"] = {"conversation_fingerprint": hashlib.sha256(request.conversation_id.encode()).hexdigest()[:12],
+                        "revision": request.revision, "provider": request.provider,
+                        "analyzed_count": len(request.messages), "level": result.level,
+                        "elapsed_ms": round((time.monotonic() - now) * 1000)}
     return AnalyzeResponse(**result.model_dump(), conversation_id=request.conversation_id,
                            session_id=request.session_id, revision=request.revision,
                            provider=request.provider, analyzed_count=len(request.messages))
+
+
+@app.get("/api/status", dependencies=[Depends(authorize)])
+def status():
+    # Diagnostics only: no chat text, names, original IDs, tokens or model response bodies.
+    return {**activity, "stores_chat": False}
 
 
 app.mount("/demo", StaticFiles(directory=ROOT / "demo", html=True), name="demo")

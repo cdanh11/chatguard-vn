@@ -103,3 +103,32 @@ def test_old_provider_is_not_silently_reinterpreted(groq_mock):
     client, calls, _ = groq_mock
     result = client.post("/api/analyze", json={**BODY, "provider": "removed-provider"}, headers=HEADERS)
     assert result.status_code == 422 and calls == []
+
+
+def test_facebook_identifiers_are_not_sent_to_provider(groq_mock):
+    client, calls, _ = groq_mock
+    body = {**BODY, "messages": [{**BODY["messages"][0], "id": "fb:private-person@msgr.private-message"}]}
+    response = client.post("/api/analyze", json=body, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json()["signals"][0]["evidence_ids"] == [body["messages"][0]["id"]]
+    assert b"private-person" not in calls[0].content
+    assert b"private-message" not in calls[0].content
+
+
+@pytest.mark.parametrize("sender", ["self", "unknown"])
+def test_groq_cannot_attribute_self_or_unknown_evidence_to_other(groq_mock, sender):
+    client, _, _ = groq_mock
+    result = client.post("/api/analyze", json={**BODY, "messages": [{**BODY["messages"][0], "sender": sender}]}, headers=HEADERS)
+    assert result.status_code == 502
+    assert "provider" not in result.json()
+
+
+def test_groq_blank_lists_are_cleaned_and_limits_are_always_explicit(groq_mock):
+    client, _, response = groq_mock
+    content = {**ASSESSMENT, "actions": [" ", "Xác minh độc lập.", "Xác minh độc lập."], "limitations": ["", "  "]}
+    response["body"]["choices"][0]["message"]["content"] = json.dumps(content)
+    result = client.post("/api/analyze", json=BODY, headers=HEADERS)
+    assert result.status_code == 200
+    assert result.json()["actions"] == ["Xác minh độc lập."]
+    assert len(result.json()["limitations"]) >= 2
+    assert all(item.strip() for item in result.json()["limitations"])

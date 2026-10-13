@@ -102,3 +102,38 @@ def test_health_requires_auth_and_does_not_disclose_secrets(client, monkeypatch)
     assert "private-key-health-test" not in response.text
     monkeypatch.setenv("GROQ_API_KEY", "   ")
     assert client.get("/api/health", headers=HEADERS).json()["groq_configured"] is False
+
+
+def test_extended_history_is_explicit_and_bounded(client):
+    body = payload(["Tin bình thường"] * 300)
+    assert client.post("/api/analyze", json=body, headers=HEADERS).status_code == 422
+    body["history_limit"] = 300
+    response = client.post("/api/analyze", json=body, headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json()["analyzed_count"] == 300
+    body = payload(["a" * 4000] * 19, history_limit=300)
+    assert client.post("/api/analyze", json=body, headers=HEADERS).status_code == 422
+
+
+def test_oversized_body_is_rejected_before_parsing(client):
+    response = client.post("/api/analyze", content=b"x" * 400001, headers=HEADERS)
+    assert response.status_code == 413
+
+
+def test_clarifying_payment_question_is_not_a_payment_demand(client):
+    response = client.post("/api/analyze", json=payload(["Tại sao tôi phải chuyển khoản trước?"]), headers=HEADERS)
+    assert response.json()["level"] == "no_signal"
+    response = client.post("/api/analyze", json=payload(["Bạn chuyển khoản giúp mình được không?"]), headers=HEADERS)
+    assert response.json()["level"] == "review"
+    response = client.post("/api/analyze", json=payload(["Tại sao bạn chưa chuyển khoản?"]), headers=HEADERS)
+    assert response.json()["level"] == "review"
+
+
+def test_diagnostics_are_authenticated_and_do_not_store_chat_or_original_ids(client):
+    body = payload(["private-text-123"], conversation_id="private-person-id")
+    client.post("/api/analyze", json=body, headers=HEADERS)
+    assert client.get("/api/status").status_code == 401
+    response = client.get("/api/status", headers=HEADERS)
+    assert response.json()["last"]["analyzed_count"] == 1
+    assert "private-text-123" not in response.text
+    assert "private-person-id" not in response.text

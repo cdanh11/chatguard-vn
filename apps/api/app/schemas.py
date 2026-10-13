@@ -15,7 +15,8 @@ class AnalyzeRequest(BaseModel):
     conversation_id: str = Field(min_length=1, max_length=200)
     session_id: str = Field(min_length=1, max_length=100)
     revision: int = Field(ge=1)
-    messages: list[Message] = Field(min_length=1, max_length=100)
+    history_limit: Literal[100, 300] = 100
+    messages: list[Message] = Field(min_length=1, max_length=300)
     provider: Literal["rules", "groq"] = "rules"
     external_consent: bool = False
 
@@ -23,8 +24,8 @@ class AnalyzeRequest(BaseModel):
     def check_context(self):
         if len({m.id for m in self.messages}) != len(self.messages):
             raise ValueError("Duplicate message IDs")
-        if sum(len(m.text) for m in self.messages) > 24000:
-            raise ValueError("Context exceeds 24,000 characters")
+        if len(self.messages) > self.history_limit or sum(len(m.text) for m in self.messages) > self.history_limit * 240:
+            raise ValueError("Context exceeds selected history budget")
         return self
 
 
