@@ -40,3 +40,5 @@ Chỉ văn bản. Chưa xác minh đầy đủ trên chat nhóm, bố cục toà
 `npm run test:e2e:facebook` dùng Chromium cách ly với 5 ô chat và 320 tin tổng hợp; kiểm tra giữ 300 tin cuối, chỉ A, bỏ qua B–E, đóng/mở lại, bằng chứng, nạp lịch sử và tắt/xóa. Fixture được phục vụ tại route Facebook bằng Playwright, không liên hệ Facebook thật. Bản test tạm thêm quyền host để mô phỏng thao tác cấp `activeTab` từ toolbar; manifest production không có quyền Facebook thường trực. Thao tác toolbar thật cần kiểm chứng riêng.
 
 `GET /api/status` cần token local, chỉ trả metadata lượt phân tích gần nhất: số tin, provider, mức cảnh báo, revision, thời gian xử lý và dấu vân tay định danh. Không trả nội dung chat, tên, ID gốc hoặc khóa. Metadata chỉ ở RAM, mất khi backend khởi động lại.
+
+Status cũng có dấu vân tay session và tối đa 12 mốc metadata gần nhất để kiểm tra theo dõi có bị reset không; không trả session ID gốc.

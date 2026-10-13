@@ -22,7 +22,7 @@ load_dotenv(ROOT / ".env")
 app = FastAPI(title="ChatGuard VN — Local MVP", version="0.1.0")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 requests_at: deque[float] = deque()
-activity: dict = {"completed": 0, "last": None}
+activity: dict = {"completed": 0, "last": None, "recent": []}
 
 
 @app.exception_handler(RequestValidationError)
@@ -92,9 +92,11 @@ async def analyze(request: AnalyzeRequest):
             raise HTTPException(status_code=502, detail="Không nhận được kết quả AI hợp lệ. Kiểm tra hạn mức/kết nối; chưa có đánh giá mới.") from None
     activity["completed"] += 1
     activity["last"] = {"conversation_fingerprint": hashlib.sha256(request.conversation_id.encode()).hexdigest()[:12],
+                        "session_fingerprint": hashlib.sha256(request.session_id.encode()).hexdigest()[:12],
                         "revision": request.revision, "provider": request.provider,
                         "analyzed_count": len(request.messages), "level": result.level,
                         "elapsed_ms": round((time.monotonic() - now) * 1000)}
+    activity["recent"] = [*activity["recent"], activity["last"]][-12:]
     return AnalyzeResponse(**result.model_dump(), conversation_id=request.conversation_id,
                            session_id=request.session_id, revision=request.revision,
                            provider=request.provider, analyzed_count=len(request.messages))

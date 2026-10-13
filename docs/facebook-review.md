@@ -18,12 +18,13 @@ Ngày: 2026-10-13. Phạm vi: chọn một người trong ô chat nhỏ, nhận 
 
 Sau khi người dùng reload, panel báo 10 tin và hiển thị kết quả Groq. API local xác nhận 2 lượt hoàn tất, lượt gần nhất phân tích 10 tin, provider Groq, mức review, dấu vân tay cuộc trùng đối tượng đã chọn. Luồng đọc → API → kết quả của phiên Brave đã được xác minh; không chỉ dựa trên probe.
 
-Kết quả người dùng cung cấp có cả bằng chứng `self` do trước đó hai bên đổi vai thử nghiệm, và danh sách giới hạn rỗng. Bản sửa tiếp theo chỉ chấp nhận evidence của `other` trong Groq, thêm giới hạn cố định và làm sạch phần tử trống. Giao diện bỏ ID nội bộ khỏi bằng chứng. Bản sửa này đã được kiểm thử local, cần nạp vào Brave để xác minh phiên thật.
+Kết quả người dùng cung cấp có cả bằng chứng `self` do trước đó hai bên đổi vai thử nghiệm, và danh sách giới hạn rỗng. Bản sửa tiếp theo chỉ chấp nhận evidence của `other` trong Groq, thêm giới hạn cố định và làm sạch phần tử trống. Giao diện bỏ ID nội bộ khỏi bằng chứng. Người dùng đã nạp DEV; API nhận lượt Groq đúng cuộc và nhận lượt cập nhật tiếp theo với số tin tăng từ 5 lên 20.
+
+Người dùng báo mở extension rồi đóng chat làm mất đối tượng. Review phát hiện toolbar và nút kết nối cùng gọi ATTACH: trước đây luôn chèn lại reader, xóa phiên. Đã sửa ATTACH trên cùng tab tái sử dụng reader đã xác minh cùng build, giữ session/người/bộ đệm. Chỉ reader thiếu hoặc sai build mới cần kết nối mới. Regression fixture kiểm tra cả kết nối lại lúc đang đọc và lúc chat đóng; session và người A không đổi.
 
 ## Chưa coi là hoàn tất
 
-- Bản sửa Groq/đồng bộ DEV mới chưa được người dùng nạp trên Brave. Không coi kiểm thử local là xác nhận đã cập nhật phiên đang mở.
-- Sau lượt đầu 10 tin đã đạt, tin thử mới tới Brave và probe thấy 14 tin, nhưng chưa ghi nhận lượt phân tích Facebook tiếp theo ở API trong thời gian quan sát. Chưa xác minh nguyên nhân ở phiên đang mở; cần kiểm tra bản reader/cấu hình và kết quả khi nạp bản mới.
+- Bản DEV đã nhận tin mới tự động, nhưng bản sửa ATTACH mới cần bật lại phiên và kiểm chứng đóng/mở trên Brave. Việc cập nhật background có thể ngắt phiên một lần; khác với mở panel trong cùng bản đang chạy.
 - Chưa có 300 tin thật trong cuộc thử để xác minh đủ 300 trên Facebook. Kiểm thử đã đạt cho DOM mô phỏng tải từng đợt từ 30 lên 300 tin, không phải cam kết mọi tài khoản tải đủ lịch sử.
 - Không bảo đảm nhận tin trong lúc Facebook đã gỡ ô chat khỏi DOM, khi tab đóng, trình duyệt nghỉ hoặc service worker bị đình chỉ lâu. Panel có cơ chế phục hồi lượt chờ khi mở lại.
 - Giao diện tài khoản khác, chat nhóm, bố cục toàn trang, tiếng Anh, sửa/thu hồi qua mọi kiểu DOM và chất lượng AI trên tập độc lập cần kiểm chứng thêm.

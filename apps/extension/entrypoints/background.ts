@@ -161,6 +161,13 @@ export default defineBackground(() => {
         await browser.storage.session.remove([key,`attached:${old}`,`attachedUrl:${old}`]);
       }
       await browser.storage.session.set({selectedTab:tab.id});
+      // Opening the toolbar panel is also ATTACH. Reuse the verified reader on this
+      // tab so opening the panel never resets the chosen person or their buffer.
+      const alreadyAttached=(await browser.storage.session.get(`attached:${tab.id}`))[`attached:${tab.id}`];
+      if(alreadyAttached) {
+        try { const info=await readerInfo(tab.id);return {tabId:tab.id,...info}; }
+        catch { /* A missing/older reader needs a fresh explicit attachment. */ }
+      }
       cancel(tab.id);await browser.storage.session.remove(stateKey(tab.id));
       await browser.storage.session.set({[`attached:${tab.id}`]:true,[`attachedUrl:${tab.id}`]:tab.url});
       await browser.scripting.executeScript({target:{tabId:tab.id},files:['/content-scripts/guard.js']});

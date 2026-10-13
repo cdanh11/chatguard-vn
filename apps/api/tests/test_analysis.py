@@ -137,3 +137,6 @@ def test_diagnostics_are_authenticated_and_do_not_store_chat_or_original_ids(cli
     assert response.json()["last"]["analyzed_count"] == 1
     assert "private-text-123" not in response.text
     assert "private-person-id" not in response.text
+    assert body["session_id"] not in response.text
+    assert response.json()["recent"][-1]["session_fingerprint"] == response.json()["last"]["session_fingerprint"]
+    assert len(response.json()["recent"]) <= 12

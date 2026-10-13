@@ -14,6 +14,7 @@ Thay file production trên đĩa không tự cập nhật extension đã đượ
 - Giao diện được WXT cập nhật; sửa background cập nhật extension. Bộ đọc được chèn bằng activeTab, không đăng ký thường trực: cấu hình dev phát lệnh reload extension khi mã reader thay đổi, thay vì dùng cơ chế mặc định chỉ cập nhật script đã đăng ký. Không reload hay đọc các tab Facebook khác.
 - Cập nhật extension có thể ngắt phiên, đóng panel hoặc xóa cấu hình session. Bấm biểu tượng trên đúng tab, chọn lại người và bật bảo vệ khi cần. Không tự khôi phục quyền đọc sau cập nhật.
 - Bộ đọc trả mã build khi kết nối. Extension từ chối bắt đầu nếu mã reader không khớp; thông báo tải lại Facebook và chọn lại người, tránh trạng thái trông đang bảo vệ nhưng chạy mã cũ.
+- Mở biểu tượng/panel hoặc kết nối lại cùng tab với reader cùng build giữ nguyên người đã chọn và bộ đệm, kể cả khi ô chat đã đóng. Điều này không phải cập nhật extension; không cần bật lại bảo vệ mỗi lần mở panel.
 - Backend có `--reload` khi dùng `-Dev`. Lượt phân tích đang chạy có thể bị gián đoạn lúc đổi mã; thử lại khi server sẵn sàng. Sửa `.env` vẫn cần khởi động lại backend.
 - Khi phát hành/demo ổn định, dừng server dev, chạy `npm run build` trong `apps/extension`, tắt bản DEV và dùng lại `.output/chrome-mv3`.
 

@@ -4,6 +4,10 @@ Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng 
 
 ## Bổ sung Brave và đồng bộ — 2026-10-14
 
+- Sau khi người dùng nạp DEV, API ghi nhận đúng cuộc được chọn: lượt đầu 5 tin/revision 2, lượt cập nhật tự động 20 tin/revision 6. Đã xác minh cập nhật tin mới ở phiên DEV; mức cảnh báo thay đổi theo ngữ cảnh, không dùng để suy ra accuracy.
+- Phát hiện mở toolbar chạy ATTACH và làm reset phiên. Đã sửa kết nối cùng tab cùng build để giữ phiên; regression popup fixture đạt khi kết nối lại đang bảo vệ và khi chat đã đóng. Chưa kiểm chứng bản sửa này trên Brave sau lần DEV tự cập nhật.
+- API status bổ sung dấu vân tay session và tối đa 12 mốc metadata trong RAM để phân biệt reset phiên; không trả session ID gốc. API 32 tests, typecheck/build và popup fixture đạt sau sửa.
+
 - Người dùng xác nhận 10 tin trong panel và có kết quả Groq sau reload. API local xác nhận lượt gần nhất có 10 tin, Groq/review và dấu vân tay đúng cuộc được chọn.
 - API: 32 tests đạt, gồm từ chối evidence self/unknown và làm sạch danh sách trống của Groq. Extension: 19 tests đạt; typecheck/build đạt.
 - Thêm dấu build reader, chặn bắt đầu khi reader không khớp, dọn listener của reader đã hủy và khôi phục đúng mức lịch sử khi mở lại panel.
