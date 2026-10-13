@@ -29,33 +29,46 @@ document.querySelector('#lazyA').onclick=()=>{const log=document.querySelector('
     worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');const id=new URL(worker.url()).host;
     const chat=await context.newPage();chat.on('pageerror',e=>errors.push(e.message));await chat.goto('https://www.facebook.com/');
     const panel=await context.newPage();panel.on('pageerror',e=>errors.push(e.message));await panel.goto('chrome-extension://'+id+'/sidepanel.html');
-    await panel.getByLabel('Token máy chủ local').fill(token);await panel.getByRole('checkbox',{name:/Bật bộ đọc Facebook/}).check();await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
+    await panel.setViewportSize({width:360,height:800});fs.mkdirSync(path.join(root,'outputs'),{recursive:true});
+    await panel.getByLabel('Token máy chủ local').fill(token);await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
     await chat.bringToFront();await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
     await panel.waitForFunction(()=>document.querySelector('[aria-label="Đối tượng theo dõi"]')?.options.length===6);
-    // Reinjecting must retire the old listener; a stale idle reader must not answer START.
+    // Repeated connection must leave the reader and scope unchanged.
     await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
     await panel.waitForFunction(()=>document.querySelector('[aria-label="Đối tượng theo dõi"]')?.options.length===6);
     assert.equal(await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).filter(v=>v?.snapshot?.messages?.length).length),0);
-    await panel.getByLabel('Đối tượng theo dõi',{exact:true}).selectOption('facebook:1001');await panel.getByLabel('Giới hạn lịch sử').selectOption('300');
+    await panel.screenshot({path:path.join(root,'outputs/chatguard-ux-choose.png')});
+    await panel.getByLabel('Đối tượng theo dõi',{exact:true}).selectOption('facebook:1001');await panel.locator('details.conversation-options > summary').click();await panel.getByLabel('Giới hạn lịch sử').selectOption('300');
     await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());await panel.getByText('300 tin trong ngữ cảnh',{exact:true}).waitFor();
     await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).waitFor();
+    assert.equal(await panel.getByLabel('Token máy chủ local').count(),0);
+    assert.ok((await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).boundingBox()).y<400);
+    assert.equal(await panel.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    // Settings can be inspected and cancelled without stopping the chosen conversation.
+    const beforeSettings=await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot.sessionId);
+    await panel.getByRole('button',{name:'Cấu hình',exact:true}).click();
+    await panel.getByRole('button',{name:'Quay lại',exact:true}).click();
+    assert.equal(await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot.sessionId),beforeSettings);
+    await panel.screenshot({path:path.join(root,'outputs/chatguard-ux-warning.png')});
     await panel.reload();await panel.getByText('300 tin trong ngữ cảnh',{exact:true}).waitFor();
     assert.equal(await panel.getByLabel('Giới hạn lịch sử').inputValue(),'300');
     let state=await worker.evaluate(async()=>{const s=await chrome.storage.session.get(null);return Object.values(s).find(v=>v?.snapshot)?.snapshot;});
     assert.equal(state.messages.length,300);assert.ok(state.messages.every(m=>m.id.startsWith('fb:1001@msgr.')));assert.equal(state.messages[0].id,'fb:1001@msgr.20');
     const sessionBeforeReattach=state.sessionId;
+    await panel.locator('details.conversation-options > summary').click();
     await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
     await panel.getByText('300 tin trong ngữ cảnh',{exact:true}).waitFor();
     state=await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot);
     assert.equal(state.sessionId,sessionBeforeReattach);assert.equal(state.conversation.id,'facebook:1001');
-    await panel.getByRole('button',{name:'Xem tin này'}).first().evaluate(b=>b.click());
+    await panel.locator('details.evidence > summary').click();await panel.getByRole('button',{name:'Xem tin này'}).first().evaluate(b=>b.click());
     await chat.locator('#addB').click();await panel.waitForTimeout(1400);
     state=await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot);
     assert.ok(!JSON.stringify(state).includes('PRIVATE B'));assert.equal(state.messages.length,300);
     await chat.getByRole('button',{name:'Đóng A',exact:true}).click();await panel.getByText('Giữ lựa chọn · chờ tin',{exact:true}).waitFor();
+    await panel.screenshot({path:path.join(root,'outputs/chatguard-ux-waiting.png')});
     await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
     await panel.getByText('Giữ lựa chọn · chờ tin',{exact:true}).waitFor();
-    assert.equal(await panel.getByLabel('Đối tượng theo dõi',{exact:true}).inputValue(),'facebook:1001');
+    assert.equal(await panel.locator('.scope h2').innerText(),'A');
     await chat.locator('#addB').click();await panel.waitForTimeout(1200);
     state=await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot);
     assert.equal(state.conversation.id,'facebook:1001');assert.equal(state.status,'watching');assert.equal(state.availability,'waiting');assert.ok(!JSON.stringify(state).includes('PRIVATE B'));
@@ -69,6 +82,11 @@ document.querySelector('#lazyA').onclick=()=>{const log=document.querySelector('
     state=await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).find(v=>v?.snapshot)?.snapshot);assert.equal(state.messages[0].id,'fb:1001@msgr.20');assert.equal(state.messages.at(-1).id,'fb:1001@msgr.319');assert.equal(state.messages.length,300);
     await panel.getByRole('button',{name:'Tắt & xóa'}).evaluate(b=>b.click());await panel.getByText('0 tin trong ngữ cảnh',{exact:true}).waitFor();
     assert.equal(await panel.locator('.assessment').count(),0);assert.deepEqual(errors,[]);
+    await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());await panel.getByText('Đang bảo vệ',{exact:true}).waitFor();
+    await panel.getByRole('button',{name:'Đổi người',exact:true}).click();await panel.getByLabel('Đối tượng theo dõi',{exact:true}).selectOption('facebook:1002');
+    await panel.getByText('0 tin trong ngữ cảnh',{exact:true}).waitFor();
+    assert.equal(await panel.locator('.assessment').count(),0);
+    assert.equal(await worker.evaluate(async()=>Object.values(await chrome.storage.session.get(null)).some(v=>v?.snapshot?.status==='watching')),false);
     console.log('PASS: discover 5 headers without collection; select only A; last 300; API/evidence; ignore B; close keeps A; remount resumes; lazy history 30 -> 300 in order; history/stop clears. Synthetic DOM fixture.');
   }catch(e){console.log('Page errors:',errors);for(const p of context.pages()){if(p.url().includes('sidepanel'))console.log(await p.locator('body').innerText());if(p.url().includes('facebook'))console.log('Fixture metadata:',await p.evaluate(()=>({logs:document.querySelectorAll('[role="log"]').length,headers:Array.from(document.querySelectorAll('h2')).map(h=>h.textContent),links:Array.from(document.querySelectorAll('a')).map(a=>({href:a.getAttribute('href'),label:a.getAttribute('aria-label')}))})));}console.log('Session keys:',await worker?.evaluate(async()=>Object.keys(await chrome.storage.session.get(null))));throw e;}
   finally{await context.close();assert.ok(path.resolve(profile).startsWith(path.join(os.tmpdir(),'chatguard-facebook-')));fs.rmSync(profile,{recursive:true,force:true});}

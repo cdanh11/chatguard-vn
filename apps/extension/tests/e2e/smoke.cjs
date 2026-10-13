@@ -42,6 +42,7 @@ const token = fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_AP
     await demo.locator('#all').click();
     await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).waitFor({timeout:15000});
     assert.ok(await panel.locator('blockquote').count()>0);
+    await panel.locator('details.evidence > summary').click();
     await panel.getByRole('button',{name:'Xem tin này'}).first().evaluate(b=>b.click());
     await panel.reload();
     await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).waitFor();
@@ -84,26 +85,25 @@ const token = fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_AP
     assert.equal(await panel.locator('.assessment').count(),0);
     console.log('PASS: invalid import rejected; valid import analyzed; reset stops and clears');
     const config=panel.locator('details.config');
-    if(!await config.evaluate(el=>el.open))await config.locator('summary').click();
+    await panel.getByRole('button',{name:'Cấu hình',exact:true}).click();
     await panel.getByLabel(/^Bộ phân tích/).selectOption('groq');
     const consent=panel.getByRole('checkbox',{name:/Tôi đồng ý/});
     assert.equal(await consent.isChecked(),false);
     await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
-    await panel.waitForFunction(()=>!document.querySelector('details.config').open);
+    await panel.waitForFunction(()=>!document.querySelector('details.config'));
     await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());
     await panel.getByRole('alert').filter({hasText:'Chưa đồng ý gửi ngữ cảnh tới Groq.'}).waitFor();
     console.log('PASS: Groq requires explicit consent');
     const env=fs.readFileSync(root+'/apps/api/.env','utf8');
     const configured=!!env.match(/^GROQ_API_KEY=[ \t]*[^\s\r\n]+/m);
     if(!configured) {
-      await config.locator('summary').click();
+      await panel.getByRole('button',{name:'Cấu hình',exact:true}).click();
       await consent.check();
       await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
-      await panel.waitForFunction(()=>!document.querySelector('details.config').open);
+      await panel.waitForFunction(()=>!document.querySelector('details.config'));
       await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());
       await panel.getByRole('alert').filter({hasText:'Groq chưa được cấu hình hợp lệ'}).waitFor({timeout:15000});
       assert.equal(await panel.locator('.assessment').count(),0);
-      await panel.getByRole('button',{name:'Tắt & xóa'}).evaluate(b=>b.click());
       console.log('PASS: missing Groq key shows error, never a rules/AI assessment');
     }
     // Simulate transport failures inside the isolated test worker; no real Groq calls.
@@ -123,10 +123,10 @@ const token = fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_AP
         return new Response(JSON.stringify(result),{status:200});
       };
     });
-    if(!await config.evaluate(el=>el.open))await config.locator('summary').click();
+    await panel.getByRole('button',{name:'Cấu hình',exact:true}).click();
     await consent.check();
     await panel.getByRole('button',{name:'Lưu cấu hình'}).click();
-    await panel.waitForFunction(()=>!document.querySelector('details.config').open);
+    await panel.waitForFunction(()=>!document.querySelector('details.config'));
     await demo.locator('#all').click();
     await worker.evaluate(async()=>{globalThis.testMode='quota';await chrome.storage.session.set({groqNextAt:0});});
     await panel.getByRole('button',{name:'Bật bảo vệ cuộc này'}).evaluate(b=>b.click());
@@ -151,13 +151,18 @@ const token = fs.readFileSync(root+'/apps/api/.env','utf8').match(/^CHATGUARD_AP
     assert.equal(await panel.locator('.assessment .badge').innerText(),'Groq API');
     await demo.locator('#message').fill('Tin mới để kiểm tra gộp lượt');await demo.locator('#composer button').click();
     await panel.getByRole('status').filter({hasText:'Chờ phân tích'}).waitFor();
+    await panel.getByRole('heading',{name:'Có dấu hiệu đáng lo'}).waitFor();
+    await panel.getByText('Đang cập nhật tin mới. Đây là đánh giá từ phần đã phân tích trước đó.',{exact:true}).waitFor();
     const count=await worker.evaluate(()=>globalThis.testRequests.length);
     await panel.waitForTimeout(2200);
     assert.equal(await worker.evaluate(()=>globalThis.testRequests.length),count);
+    // A retained warning cannot quote newly edited text as if it were the analyzed evidence.
+    await demo.locator('[data-chatguard-thread] [data-chatguard-message]').first().evaluate(el=>{el.textContent='Tin đã sửa: cần đánh giá lại nội dung này.';});
+    await panel.waitForFunction(()=>!document.querySelector('.assessment'));
     const previousTab=await worker.evaluate(async()=>(await chrome.storage.session.get('selectedTab')).selectedTab);
     const secondDemo=await context.newPage();secondDemo.on('pageerror',e=>errors.push(e.message));
     await secondDemo.goto('http://127.0.0.1:8000/demo/#friend');await secondDemo.locator('#cases button').first().waitFor();
-    await secondDemo.bringToFront();await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
+    await secondDemo.bringToFront();await panel.locator('details.conversation-options > summary').click();await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());
     await panel.waitForFunction(()=>document.querySelector('.scope h2')?.textContent==='Minh · bạn học giả lập');
     const old=await worker.evaluate(async tab=>chrome.tabs.sendMessage(tab,{type:'GUARD_DESCRIBE'}),previousTab);
     assert.equal(old.snapshot.status,'paused');assert.equal(old.snapshot.messages.length,0);

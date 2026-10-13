@@ -40,11 +40,11 @@ export default defineBackground(() => {
     clearTimeout(timers.get(tab));
     timers.set(tab,setTimeout(()=>{timers.delete(tab);void analyze(tab,snapshot);},Math.max(0,due-Date.now())));
   }
-  async function queue(tab:number,snapshot:Snapshot) {
+  async function queue(tab:number,snapshot:Snapshot,previous?:TabState) {
     const settings=await getSettings();
     const cooldown=Number((await browser.storage.session.get('groqNextAt')).groqNextAt)||0;
     const due=Math.max(Date.now()+1800,settings.provider==='groq'?cooldown:0);
-    await putState(tab,{snapshot,waitingUntil:due});arm(tab,snapshot,due);
+    await putState(tab,{snapshot,waitingUntil:due,result:previous?.result,completedAt:previous?.completedAt});arm(tab,snapshot,due);
   }
   function supported(url:string) {
     try {
@@ -74,7 +74,7 @@ export default defineBackground(() => {
         await browser.storage.session.set({groqNextAt:Date.now()+GROQ_INTERVAL_MS});
       }
       aborters.set(tab,abort);
-      await putState(tab,{snapshot,analyzing:true,startedAt:Date.now()});
+      await putState(tab,{snapshot,result:current.result,completedAt:current.completedAt,analyzing:true,startedAt:Date.now()});
       return settings;
     });
     if (!settings || abort.signal.aborted) return;
@@ -105,7 +105,7 @@ export default defineBackground(() => {
       await transaction(async()=>{
         const latest = await getState(tab);
         if (!abort.signal.aborted && latest && isCurrent(latest.snapshot,context)) {
-          await putState(tab,{snapshot:latest.snapshot,retryAt,error:error instanceof Error ? error.message : 'Không kết nối được máy chủ.'});
+          await putState(tab,{snapshot:latest.snapshot,result:latest.result,completedAt:latest.completedAt,retryAt,error:error instanceof Error ? error.message : 'Không kết nối được máy chủ.'});
         }
       });
     } finally {if (aborters.get(tab) === abort) aborters.delete(tab);}
@@ -124,10 +124,14 @@ export default defineBackground(() => {
         else await putState(tab,{...previous,snapshot});
         return {ok:true};
       }
+      // Keep the last assessment while new messages are appended. Edits, removals,
+      // scope changes and truncated old context invalidate its supporting text.
+      const retain=previous?.result&&previous.snapshot.sessionId===snapshot.sessionId&&previous.snapshot.conversation?.id===snapshot.conversation?.id
+        &&previous.snapshot.messages.every(old=>snapshot.messages.some(m=>m.id===old.id&&m.sender===old.sender&&m.text===old.text))?previous:undefined;
       cancel(tab);
-      await putState(tab,{snapshot});
+      await putState(tab,{snapshot,result:retain?.result,completedAt:retain?.completedAt});
       if (snapshot.status === 'watching' && snapshot.availability!=='waiting' && snapshot.messages.length) {
-        await queue(tab,snapshot);
+        await queue(tab,snapshot,retain);
       }
       return {ok:true};
     }
@@ -199,7 +203,7 @@ export default defineBackground(() => {
     if (message.type === 'RETRY') {
       const state = await getState(tab);
       if(state?.retryAt&&state.retryAt>Date.now()) return {error:'Đang chờ hết hạn mức. Thử lại sau thời gian hiển thị.'};
-      if (state?.snapshot.status === 'watching' && state.snapshot.messages.length) {cancel(tab);await queue(tab,state.snapshot);}
+      if (state?.snapshot.status === 'watching' && state.snapshot.messages.length) {cancel(tab);await queue(tab,state.snapshot,state);}
       return {ok:true};
     }
     if(message.type==='FOCUS') return browser.tabs.sendMessage(tab,{type:'GUARD_FOCUS',id:String(message.id||'')});
