@@ -2,6 +2,8 @@
 
 Tiện ích Chrome hỗ trợ nhận diện dấu hiệu thao túng và lừa đảo trong một cuộc trò chuyện do người dùng chọn.
 
+Ưu tiên tình huống tuyển cộng tác viên/việc làm qua mạng. Đối chiếu điều kiện phí trước–sau và dẫn tin nguồn; một số yêu cầu giao giấy tờ gốc hoặc kiểm soát liên lạc được xử lý với hướng dẫn ưu tiên an toàn. Đây là baseline giới hạn, không phải hệ thống xác định tội phạm.
+
 ## Trạng thái MVP
 
 - Có extension WXT/React, backend FastAPI và phòng thử hội thoại tổng hợp.
@@ -55,13 +57,14 @@ Tests kiểm tra schema, quyền truy cập, bằng chứng, phạm vi cuộc tr
 - Ngữ cảnh và token local lưu bằng `chrome.storage.session`, không đồng bộ tài khoản. Chỉ một người được theo dõi; tắt/xóa trước khi chọn người mới. Đóng ô chat nhỏ giữ lựa chọn; đóng/tải lại tab Facebook hoặc đổi đường dẫn dừng phiên.
 - Backend chỉ lắng nghe `127.0.0.1`, dùng token, giới hạn đầu vào/lượt gọi và không ghi nội dung chat vào log hay cơ sở dữ liệu.
 - Chế độ Groq gửi phần ngữ cảnh được chọn tới Groq sau khi đồng ý. Ưu tiên dữ liệu tổng hợp khi thử; xem [chính sách dữ liệu Groq](https://console.groq.com/docs/your-data).
-- Mức 1 giữ tối đa 100 tin/24.000 ký tự; mức 2 giữ tối đa 300 tin/72.000 ký tự. Nút nạp lịch sử chỉ cuộn trong đúng cuộc đã chọn và báo số tin thực tế. Groq nhận tối đa 40 tin gần nhất/6.000 ký tự mỗi lượt, cách nhau tối thiểu 30 giây; ID thật được thay bằng mã tạm trước khi gửi. Không cam kết lấy đủ lịch sử hoặc đọc tin khi Facebook đã gỡ ô chat khỏi DOM; không tự gửi tin.
+- Mức 1 giữ tối đa 100 tin/24.000 ký tự; mức 2 giữ tối đa 300 tin/72.000 ký tự. Nút nạp lịch sử chỉ cuộn trong đúng cuộc đã chọn và báo số tin thực tế. Groq nhận tối đa 40 tin/6.000 ký tự mỗi lượt: phần gần nhất và một số phát biểu cũ về phí còn trong bộ đệm. Các lượt cách nhau tối thiểu 30 giây; ID thật được thay bằng mã tạm trước khi gửi. Không cam kết lấy đủ lịch sử hoặc đọc tin khi Facebook đã gỡ ô chat khỏi DOM; không tự gửi tin.
 - Cảnh báo không xác minh danh tính, không chứng minh một người phạm tội hoặc cuộc trò chuyện an toàn.
 
 Không commit `.env`, dữ liệu riêng tư, model weights hoặc checkpoints. Khóa Groq chỉ đặt trong `apps/api/.env`, không trong extension.
 
 ## Tài liệu
 
+- [Kế hoạch sản phẩm và phân công nhóm](docs/product-plan.md)
 - [Phạm vi MVP](docs/mvp.md)
 - [Kiến trúc](docs/architecture.md)
 - [Giao diện và thao tác](docs/extension-ux.md)

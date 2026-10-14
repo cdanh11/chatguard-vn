@@ -26,10 +26,10 @@ Không cam kết đọc tin mới trong lúc đóng nếu Facebook đã gỡ vù
 
 | Mức | Bộ đệm trong phiên | Bộ luật | Groq |
 | --- | --- | --- | --- |
-| 1 | Tối đa 100 tin, 24.000 ký tự | Toàn bộ bộ đệm | Tối đa 40 tin cuối, 6.000 ký tự |
-| 2 | Tối đa 300 tin, 72.000 ký tự | Toàn bộ bộ đệm | Tối đa 40 tin cuối, 6.000 ký tự |
+| 1 | Tối đa 100 tin, 24.000 ký tự | Toàn bộ bộ đệm | Tối đa 40 tin, 6.000 ký tự: gần nhất + mốc phí cũ |
+| 2 | Tối đa 300 tin, 72.000 ký tự | Toàn bộ bộ đệm | Tối đa 40 tin, 6.000 ký tự: gần nhất + mốc phí cũ |
 
-Giữ nguyên tin, không cắt giữa câu để đủ ngân sách. Số tin thực tế có thể thấp hơn do ký tự, ảnh/audio, lịch sử chưa tải hoặc DOM ảo hóa. Kết quả Groq chỉ mô tả phần được gửi; dấu hiệu ngoài 40 tin cuối có thể bị bỏ sót. Chưa có bộ nhớ tóm tắt lịch sử dài.
+Giữ nguyên tin, không cắt giữa câu để đủ ngân sách. Số tin thực tế có thể thấp hơn do ký tự, ảnh/audio, lịch sử chưa tải hoặc DOM ảo hóa. Có thể giữ tối đa 8 mốc không thu phí cũ trong bộ đệm, tổng 1.500 ký tự; phần còn lại dành cho tin gần nhất. Kết quả chỉ mô tả phần được gửi, không phải lịch sử liên tục đầy đủ. Dấu hiệu ngoài phần chọn vẫn có thể bị bỏ sót; chưa có bộ nhớ tóm tắt lịch sử dài.
 
 ## Phạm vi và định danh
 

@@ -13,10 +13,13 @@
 - Groq giới hạn 40 tin/6.000 ký tự/lượt, cách tối thiểu 30 giây; gộp tin mới, hiển thị chờ, lỗi quota và nút thử lại theo Retry-After. Không tự lặp lại lượt lỗi.
 - Kiểm tra cấu trúc/bằng chứng ở cả API và extension; phản hồi đến sau khi dừng bị loại.
 - Có lệnh đánh giá baseline trên các ca tổng hợp, xuất báo cáo JSON để nhóm AI/ML tiếp nối.
+- Background điều phối khi panel đóng, có alarm phục hồi lịch và badge/chỉ báo khi cần kiểm chứng. Đóng ô chat giữ phạm vi nhưng chờ nếu log biến mất.
+- Đối chiếu điều kiện phí bằng cặp tin trước/sau; Groq giữ một số phát biểu cũ về phí trong giới hạn 40 tin/6.000 ký tự. Đây là baseline, chưa phải ledger tổng quát.
+- Ưu tiên an toàn khi có yêu cầu giao giấy tờ gốc hoặc cấm liên lạc người thân; không gán nhãn mua bán người.
 
 ## Cần kiểm chứng thêm
 
-- Đã đối chiếu DOM của hai tài khoản thử; còn cần khép kín kiểm thử extension Brave đang báo 0 tin sau khi người dùng reload bản build và Facebook.
+- Phiên Brave đã đọc được 10 tin và có kết quả Groq sau reload. Cần tiếp tục kiểm tra độ bền với cập nhật DEV và thay đổi giao diện; kiểm thử Chromium cách ly không thay thế xác nhận trên phiên Brave thật.
 - Độ bền khi dùng Groq lâu dài với hạn mức thực (đã có một lượt gọi thật thành công).
 - Chất lượng phân tích tiếng Việt trên dữ liệu độc lập.
 - Điều khoản nền tảng và chính sách trước phát hành.
@@ -24,6 +27,8 @@
 ## Ngoài phạm vi
 
 Cam kết toàn bộ lịch sử; giám sát khi đóng tab; xác minh danh tính; Instagram/Threads; ứng dụng di động; ảnh/audio; tự gửi tin, chặn người hoặc giao dịch; huấn luyện mô hình lớn trên máy 8 GB.
+
+Tạm dừng giữ ngữ cảnh, xem bản nháp/xuất báo cáo ngay trong panel, feedback và ledger nhiều loại là bước tiếp theo. Xuất JSON ở phòng thử không phải xuất báo cáo bảo vệ. Xem [kế hoạch sản phẩm](product-plan.md).
 
 ## Nghiệm thu
 

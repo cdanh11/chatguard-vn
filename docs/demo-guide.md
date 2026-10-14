@@ -49,7 +49,7 @@ Trang thử không gửi tin cho người thật. Các ca được biên soạn,
 - Dùng dữ liệu tổng hợp khi thử. Chính sách xử lý dữ liệu: https://console.groq.com/docs/your-data .
 - Hạn mức có cả lượt gọi và token; xem https://console.groq.com/docs/rate-limits . Không gọi lại ngay liên tục khi nhận 429.
 - Lỗi hạn mức/kết nối được hiển thị; không âm thầm đổi sang bộ luật và gọi đó là kết quả AI.
-- Mỗi lượt Groq dùng tối đa 40 tin gần nhất/6.000 ký tự và chờ tối thiểu 30 giây giữa các lượt. Đây là mức tiết kiệm cho MVP, không bảo đảm tránh mọi quota. Khi 429, chờ thời gian hiển thị rồi bấm thử lại. Số tin thực sự được phân tích hiện bên dưới kết quả.
+- Mỗi lượt Groq dùng tối đa 40 tin/6.000 ký tự: phần gần nhất và một số phát biểu cũ về phí còn trong bộ đệm; chờ tối thiểu 30 giây giữa các lượt. Đây là mức tiết kiệm cho MVP, không bảo đảm tránh mọi quota. Khi 429, chờ thời gian hiển thị rồi bấm thử lại. Số tin thực sự được phân tích hiện bên dưới kết quả.
 
 ## Facebook thật
 

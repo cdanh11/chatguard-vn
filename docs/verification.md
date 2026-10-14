@@ -2,6 +2,18 @@
 
 Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng cho kiểm thử.
 
+## Review kế hoạch và regression bổ sung — 2026-10-14
+
+- API: 45 tests đạt. Extension: 24 unit tests đạt, typecheck và production build đạt.
+- Bộ đệm Groq giữ được phát biểu không thu phí từ đầu cuộc cùng yêu cầu tiền về sau trong trần 40 tin/6.000 ký tự. Test kiểm tra đúng thứ tự, không lặp ID và không giữ self làm mốc yêu cầu của đối phương.
+- Baseline đối chiếu phí dẫn hai tin nguồn, bỏ qua các ca câu hỏi/phủ định/trích dẫn/ngoại lệ đã định nghĩa. Có regression tránh nhầm chữ “dụng” trong “tuyển dụng” với từ “đừng” sau chuẩn hóa không dấu.
+- Chính sách yêu cầu giao giấy tờ gốc/kiểm soát liên lạc ưu tiên an toàn cả với kết quả Groq hợp lệ; không fallback khi provider lỗi. Test đối chứng có phỏng vấn bình thường, bản sao giấy tờ và lời nhắc đừng giao hộ chiếu.
+- `test:e2e:recruitment` đạt với API local thật và panel: cặp tin trước/sau hiển thị, hành động không tiếp tục hỏi thử, và ca phỏng vấn bình thường chưa có dấu hiệu. Toàn bộ dữ liệu tổng hợp, không phải người dùng thật gặp nguy hiểm.
+- `python evaluate.py`: 9/9 nhãn phòng thử khớp baseline. Đây là regression do tác giả viết, không phải độ chính xác thực tế hoặc test độc lập.
+- Tái hiện lỗi DEV: manifest cập nhật stamp trong khi Vite giữ define từ config cũ trên partial rebuild. Đã chuyển stamp sang build hook và lấy version manifest từ artifact reader. `test:e2e:dev-sync` đạt: stamp cùng thay đổi, reload extension, reconnect không vòng lặp và không phát đường cập nhật script chưa đăng ký.
+- `test:e2e:startup` đạt cả production và DEV: manifest thiếu `alarms` không crash, vẫn dùng được cấu hình, từ chối START trước khi đọc, trả hướng dẫn reload. Không coi đây là xác nhận duy nhất về exception trong ảnh Brave cũ.
+- Smoke MVP, fixture Facebook và background worker/alarm đều đạt trên Chromium cách ly sau thay đổi. Chưa xác nhận native panel Brave của người dùng đã nạp bản sửa cuối; cần Reload extension khi đang giữ runtime cũ.
+
 ## Bổ sung Brave và đồng bộ — 2026-10-14
 
 - Chế độ nền: 23 tests extension đạt. Production build trong profile Chromium cách ly phân tích khi panel đã đóng, gộp 4/5 tin đúng, ưu tiên OTP, hiện badge `!` và nút trên trang, mở lại giữ kết quả.
