@@ -5,6 +5,10 @@ import { GROQ_INTERVAL_MS, retryDelay, selectContext, validAssessment } from '..
 import {changedIds,indicatorFor,nextAnalysisAt,priorityChange} from '../lib/monitoring';
 
 export default defineBackground(() => {
+  // An unpacked dev build may load new JS before the browser reloads permissions.
+  // Keep the panel usable and fail closed instead of crashing on alarms.onAlarm.
+  const hasAlarms=!!browser.alarms?.onAlarm;
+  const reloadMessage='Bản tiện ích đang nạp thiếu quyền chạy nền. Reload ChatGuard VN trong trang Tiện ích, rồi bấm Kết nối lại. Không cần nhập lại khóa Groq.';
   const timers = new Map<number, ReturnType<typeof setTimeout>>();
   const aborters = new Map<number, AbortController>();
   // Serialize state changes so a late response cannot overwrite a stop or newer revision.
@@ -36,7 +40,7 @@ export default defineBackground(() => {
     ]);
   }
   const putState = async (tab:number, value:TabState) => {await browser.storage.session.set({[stateKey(tab)]:value});await updateIndicator(tab,value);};
-  const cancel = async (tab:number) => {clearTimeout(timers.get(tab)); timers.delete(tab); aborters.get(tab)?.abort(); aborters.delete(tab);await browser.alarms.clear(alarmKey(tab));};
+  const cancel = async (tab:number) => {clearTimeout(timers.get(tab)); timers.delete(tab); aborters.get(tab)?.abort(); aborters.delete(tab);if(hasAlarms)await browser.alarms.clear(alarmKey(tab));};
   async function removeState(tab:number) {await cancel(tab);await browser.storage.session.remove(stateKey(tab));await updateIndicator(tab);}
   async function health(token:string) {
     if(!token.trim()) throw new Error('Nhập token máy chủ trước.');
@@ -58,6 +62,7 @@ export default defineBackground(() => {
     if(snapshot)await analyze(tab,snapshot);
   }
   async function arm(tab:number,due:number) {
+    if(!hasAlarms)throw new Error(reloadMessage);
     clearTimeout(timers.get(tab));
     // Timers are responsive while awake; the persisted alarm survives worker suspension.
     await browser.alarms.create(alarmKey(tab),{when:Math.max(Date.now()+30000,due)});
@@ -82,7 +87,7 @@ export default defineBackground(() => {
   async function readerInfo(tab:number) {
     const info=await browser.tabs.sendMessage(tab,{type:'GUARD_DESCRIBE'});
     if(info?.readerBuild!==browser.runtime.getManifest().version_name) {
-      throw new Error('Bộ đọc trong tab khác bản extension. Tải lại Facebook rồi bấm biểu tượng ChatGuard và chọn lại người cần bảo vệ.');
+      throw new Error('Bộ đọc và tiện ích chưa đồng bộ bản cập nhật. Reload ChatGuard VN trong trang Tiện ích, rồi bấm Kết nối lại.');
     }
     return info;
   }
@@ -144,6 +149,10 @@ export default defineBackground(() => {
       if (typeof tab !== 'number' || !supported(sender.tab.url || '') || !(await browser.storage.session.get(`attached:${tab}`))[`attached:${tab}`]) return;
       const snapshot = message.snapshot as Snapshot;
       if (!snapshot || !Array.isArray(snapshot.messages) || snapshot.messages.length > 300) return;
+      if(!hasAlarms&&snapshot.status==='watching') {
+        await browser.tabs.sendMessage(tab,{type:'GUARD_STOP'}).catch(()=>{});await removeState(tab);
+        return {error:reloadMessage};
+      }
       const previous = await getState(tab);
       if (snapshot.status === 'watching' && previous?.snapshot.sessionId === snapshot.sessionId && previous.snapshot.revision > snapshot.revision) return;
       if(previous&&snapshot.status==='watching'&&previous.snapshot.sessionId===snapshot.sessionId&&previous.snapshot.revision===snapshot.revision) {
@@ -221,6 +230,7 @@ export default defineBackground(() => {
     }
     if (message.type === 'DESCRIBE') return readerInfo(tab);
     if (message.type === 'START') {
+      if(!hasAlarms)return {error:reloadMessage};
       await readerInfo(tab);
       const s=await getSettings();
       if (!s.token) return {error:'Nhập và lưu token máy chủ trước.'};
@@ -246,12 +256,13 @@ export default defineBackground(() => {
     }
     return transaction(()=>handle(message,sender)).catch(error => ({error:error instanceof Error ? error.message : 'Không thực hiện được. Tải lại tab, kết nối lại hoặc kiểm tra máy chủ.'}));
   });
-  browser.alarms.onAlarm.addListener(alarm=>{if(alarm.name.startsWith('chatguard:analyze:')){const tab=Number(alarm.name.slice('chatguard:analyze:'.length));if(Number.isInteger(tab))void fire(tab);}});
+  if(hasAlarms)browser.alarms.onAlarm.addListener(alarm=>{if(alarm.name.startsWith('chatguard:analyze:')){const tab=Number(alarm.name.slice('chatguard:analyze:'.length));if(Number.isInteger(tab))void fire(tab);}});
   // Rehydrate scheduling once on every worker start, independently of a side panel.
   void transaction(async()=>{
     const stored=await browser.storage.session.get(null);
     for(const key of Object.keys(stored).filter(k=>k.startsWith('tab:'))) {
       const tab=Number(key.slice(4));const state=stored[key] as TabState;
+      if(!hasAlarms){await browser.tabs.sendMessage(tab,{type:'GUARD_STOP'}).catch(()=>{});await removeState(tab);continue;}
       if(state.snapshot?.status!=='watching'){await updateIndicator(tab);continue;}
       try {
         const info=await readerInfo(tab);
@@ -261,7 +272,7 @@ export default defineBackground(() => {
         else await updateIndicator(tab,state);
       }catch{await removeState(tab);}
     }
-  });
+  }).catch(()=>{});
   browser.action.onClicked.addListener(tab => {if(tab.id){void browser.sidePanel.open({tabId:tab.id});void transaction(()=>handle({type:'ATTACH',activeTabId:tab.id},{url:browser.runtime.getURL('/sidepanel.html')})).catch(()=>{});}});
   browser.tabs.onRemoved.addListener(tab => {void transaction(async()=>{await removeState(tab);await browser.storage.session.remove([`attached:${tab}`,`attachedUrl:${tab}`]);});});
   browser.tabs.onUpdated.addListener((tab,change,info) => {

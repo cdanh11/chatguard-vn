@@ -11,23 +11,41 @@ function readerBuild() {
   return `reader-${hash.digest('hex').slice(0,10)}`;
 }
 
+function outputFingerprint(outDir:string) {
+  try {
+    return createHash('sha256').update(readFileSync(resolve(outDir,'manifest.json'))).update(readFileSync(resolve(outDir,'content-scripts/guard.js'))).digest('hex');
+  }catch{return undefined;}
+}
+
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   // Use the user's existing Brave profile, loaded manually once. Never launch a second profile.
   webExt: {disabled:true},
   dev: {server:{host:'127.0.0.1',port:3001}},
-  vite: () => ({define:{__CHATGUARD_READER_BUILD__:JSON.stringify(readerBuild())}}),
   hooks: {
-    'server:created': (_wxt,server) => {
+    // WXT's Vite builder retains its initial config during partial dev rebuilds.
+    // Stamp at each actual build, then derive manifest version from that artifact.
+    'vite:build:extendConfig': (_entries,config) => {
+      config.define={...config.define,__CHATGUARD_READER_BUILD__:JSON.stringify(readerBuild())};
+    },
+    'build:manifestGenerated': (wxt,manifest) => {
+      const reader=readFileSync(resolve(wxt.config.outDir,'content-scripts/guard.js'),'utf8');
+      const stamp=reader.match(/["'`](reader-[a-f0-9]{10})["'`]/)?.[1];
+      if(!stamp)throw new Error('Missing compiled reader build stamp');
+      manifest.version_name=stamp;
+    },
+    'server:created': (wxt,server) => {
       const original=server.reloadContentScript.bind(server);
-      let previous:string|undefined;
+      let previous=outputFingerprint(wxt.config.outDir);
       server.reloadContentScript=payload=>{
         if(payload.registration!=='runtime'){original(payload);return;}
         // Our reader is injected with activeTab, not registered. WXT's default runtime
         // reloader therefore has no registered script to update. Reload this dev extension
         // when its compiled reader changes; never reload or inspect unrelated Facebook tabs.
-        const next=readerBuild();const changed=previous!==undefined&&previous!==next;previous=next;
-        if(changed)server.reloadExtension();else original(payload);
+        const next=outputFingerprint(wxt.config.outDir);const changed=previous!==undefined&&next!==undefined&&previous!==next;previous=next;
+        // No default runtime-reloader call: it cannot update executeScript readers.
+        // Including manifest content catches permission/version changes on restart.
+        if(changed)server.reloadExtension();
       };
     },
   },
