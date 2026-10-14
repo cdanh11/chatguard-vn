@@ -1,5 +1,7 @@
 # Phạm vi MVP
 
+Cập nhật: 14/10/2026. Phạm vi triển khai khác với chất lượng đã được đánh giá độc lập.
+
 ## Đã triển khai trong mã
 
 - Chrome desktop, WXT/React và FastAPI local.
@@ -16,6 +18,7 @@
 - Background điều phối khi panel đóng, có alarm phục hồi lịch và badge/chỉ báo khi cần kiểm chứng. Đóng ô chat giữ phạm vi nhưng chờ nếu log biến mất.
 - Đối chiếu điều kiện phí bằng cặp tin trước/sau; Groq giữ một số phát biểu cũ về phí trong giới hạn 40 tin/6.000 ký tự. Đây là baseline, chưa phải ledger tổng quát.
 - Ưu tiên an toàn khi có yêu cầu giao giấy tờ gốc hoặc cấm liên lạc người thân; không gán nhãn mua bán người.
+- Xem bản nháp trong panel, 25 tin mỗi nhóm; xuất JSON/HTML cục bộ theo bằng chứng hoặc toàn bộ bộ đệm. Xác minh lại phiên khi xuất, loại metadata định danh và ghi rõ kết quả chưa cập nhật.
 
 ## Cần kiểm chứng thêm
 
@@ -28,8 +31,10 @@
 
 Cam kết toàn bộ lịch sử; giám sát khi đóng tab; xác minh danh tính; Instagram/Threads; ứng dụng di động; ảnh/audio; tự gửi tin, chặn người hoặc giao dịch; huấn luyện mô hình lớn trên máy 8 GB.
 
-Tạm dừng giữ ngữ cảnh, xem bản nháp/xuất báo cáo ngay trong panel, feedback và ledger nhiều loại là bước tiếp theo. Xuất JSON ở phòng thử không phải xuất báo cáo bảo vệ. Xem [kế hoạch sản phẩm](product-plan.md).
+Tạm dừng giữ ngữ cảnh, feedback, PDF riêng và ledger nhiều loại là bước tiếp theo. Báo cáo panel đã có; nhập/xuất JSON ở phòng thử vẫn là định dạng kịch bản riêng. Xem [kế hoạch sản phẩm](product-plan.md).
 
 ## Nghiệm thu
 
 Facebook: chọn A, mở/nhắn B không đọc B; đóng A giữ lựa chọn, mở lại A nối đúng ID; không lặp tin khi dựng lại DOM; lịch sử ghép đúng thứ tự. Demo đổi route dừng và cần bật lại. Không hiện kết quả phiên đã tắt; lỗi kết nối không biến thành “an toàn”; tắt/xóa không giữ nội dung phiên. Fixture, probe DOM và phiên extension thật phải được báo cáo tách biệt.
+
+Báo cáo: phạm vi mặc định chỉ bằng chứng, full chỉ khi chọn; không kèm token/ID gốc từ metadata; HTML không chạy câu chat như mã; phiên đã dừng/đổi người không xuất lại. Xóa phiên không xóa bản sao đã tải. Xem [nghiệm thu](verification.md).

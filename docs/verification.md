@@ -1,6 +1,18 @@
 # Kết quả xác minh MVP
 
-Ngày kiểm tra: 2026-10-12. Windows, Python 3.11, Node.js 24, Chromium riêng cho kiểm thử.
+Cập nhật: 14/10/2026. Windows, Python 3.11, Node.js 24, Chromium riêng cho kiểm thử. Các mục dưới giữ ngày/pha thử để không nhầm regression cũ với nghiệm thu bản mới hoặc accuracy thực tế.
+
+## Bản nháp/báo cáo và đồng bộ tài liệu — 2026-10-14
+
+- Extension: 30 unit tests, typecheck và production build đạt. Sáu test báo cáo mới kiểm tra default chỉ bằng chứng, full-buffer, trường metadata cho phép, alias ID, trạng thái cũ/khác phiên, duplicate ID và HTML escape/CSP.
+- Report E2E đạt: tải JSON/HTML thật, không thêm lượt phân tích, đúng vai/nguồn, full-buffer chỉ khi chọn, HTML không chạy script/ảnh từ chat và panel 360px không tràn ngang. Phiên đã dừng/đổi người bị từ chối xuất; file đã tải còn do người dùng quản lý.
+- Giữ lại một phản hồi TAB_STATE thực rồi trả sau STOP: panel không phục hồi bản nháp cũ. Các lệnh thay đổi phạm vi làm poll đang chờ mất hiệu lực.
+- Fixture Facebook đạt thêm: bản nháp mở 25 rồi 50 tin, báo cáo full xuất đủ 300 tin A và không có B hoặc ID gốc. Các kiểm tra giữ A, nạp 30 → 300, đóng/mở và tắt/xóa vẫn đạt.
+- `scripts/check.ps1` đạt: 45 tests API, 30 tests extension, typecheck/build. API không đổi schema/provider trong đợt báo cáo; đánh giá độc lập vẫn chưa có.
+- Smoke MVP, background/alarm và startup đạt lại sau bổ sung báo cáo. Worker dừng thật rồi được alarm đánh thức; manifest thiếu alarms vẫn không crash.
+- Tài liệu hiện phân biệt export phòng thử với export panel, trần schema API với trần Groq client, bộ nhớ phiên với file đã tải và test fixture với phiên thật.
+- Audit tài liệu: đủ 18 Markdown cũ được cập nhật, thêm 4 tài liệu; 22 file và 96 link nội bộ được kiểm tra, không có link/heading bị hỏng hoặc lệnh npm không tồn tại.
+- Lệnh đầy đủ: `scripts/check.ps1` cho API/unit/typecheck/build; E2E chạy trong `apps/extension` với backend local đang mở, xem [README extension](../apps/extension/README.md).
 
 ## Review kế hoạch và regression bổ sung — 2026-10-14
 

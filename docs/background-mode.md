@@ -1,5 +1,7 @@
 # Theo dõi khi đóng panel
 
+Cập nhật: 14/10/2026.
+
 Sau khi kết nối và bật bảo vệ cho một người, có thể đóng panel phải của ChatGuard. Bộ đọc trong tab và tác vụ phân tích không phụ thuộc panel. Kết quả gần nhất nằm trong `chrome.storage.session`; mở lại panel hiển thị cùng phiên, không khởi động lại việc theo dõi.
 
 ## Báo trạng thái
@@ -21,9 +23,11 @@ Chỉ báo trên trang chứa trạng thái tổng quát, không chứa tên, n�
 
 ## Tần suất
 
-Trong cài đặt, chọn **Sau mỗi tin nhắn** (mặc định) hoặc **Gộp 5 tin**. Lượt đầu được ưu tiên; nhóm chưa đủ 5 thay đổi sẽ được xếp lịch sau khoảng 45 giây từ thay đổi đầu, không lùi thời hạn mỗi lần thêm tin. Yêu cầu tiền/OTP trong tin mới được ưu tiên sớm; bộ lọc ưu tiên chỉ quyết định lịch, không tự kết luận có lừa đảo.
+Trong cài đặt, chọn **Sau mỗi tin nhắn** (mặc định) hoặc **Gộp 5 tin**. Lượt đầu được ưu tiên; nhóm chưa đủ 5 thay đổi được xếp lịch sau khoảng 45 giây từ thay đổi đầu, không lùi hạn mỗi lần thêm tin. Tiền/OTP/mật khẩu và một số nội dung giấy tờ/kiểm soát liên lạc từ `other` được ưu tiên; bộ lọc chỉ quyết định lịch, không tự kết luận lừa đảo.
 
 Các lượt Groq cách ít nhất 30 giây, mỗi lượt tối đa 40 tin/6.000 ký tự. Bộ luật local cách ít nhất 3,1 giây để phù hợp giới hạn API 20 lượt/phút. Tin đến trong thời gian chờ được gộp vào ngữ cảnh mới nhất. Không hứa trả kết quả ngay sau mọi tin hoặc đúng một thời điểm tuyệt đối.
+
+Ngữ cảnh Groq có thể gồm mốc không thu phí cũ và phần gần nhất; không phải toàn bộ 300 tin. Xem [ngân sách lịch sử](facebook-mvp.md#ngân-sách-lịch-sử).
 
 ## Vòng đời tiến trình nền
 
@@ -32,6 +36,8 @@ Lịch lưu trong session state; `chrome.alarms` đánh thức worker nếu time
 Alarm có thể trễ, không đánh thức máy đang ngủ; không phải tác vụ chạy khi trình duyệt đã thoát. Đây là hành vi nền của [Chrome alarms](https://developer.chrome.com/docs/extensions/reference/api/alarms) và [service worker](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle). Yêu cầu Chrome/Brave nền Chromium 120 trở lên; permission thêm duy nhất là `alarms`, không có host Facebook thường trực.
 
 Đóng panel khác với đóng ô chat Facebook. Nếu Facebook gỡ log tin khỏi DOM khi đóng ô chat, giữ lựa chọn và chờ mở lại đúng cuộc mới đọc tiếp. Tab Facebook/backend local phải còn mở. Tải lại tab, đổi route, cập nhật extension hoặc khởi động lại trình duyệt có thể yêu cầu bật lại bảo vệ; không lưu hội thoại qua các phiên trình duyệt.
+
+Mở lại panel có thể xem bản nháp và xuất báo cáo từ buffer hiện có, kể cả khi đang chờ mở lại ô chat. Xuất file không gọi backend/Groq và không thay lịch theo dõi. File đã tải không nằm trong dữ liệu bị xóa khi dừng; xem [báo cáo](reports.md).
 
 ## Kiểm thử
 

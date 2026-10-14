@@ -1,5 +1,7 @@
 # ChatGuard VN
 
+Cập nhật tài liệu: 14/10/2026.
+
 Tiện ích Chrome hỗ trợ nhận diện dấu hiệu thao túng và lừa đảo trong một cuộc trò chuyện do người dùng chọn.
 
 Ưu tiên tình huống tuyển cộng tác viên/việc làm qua mạng. Đối chiếu điều kiện phí trước–sau và dẫn tin nguồn; một số yêu cầu giao giấy tờ gốc hoặc kiểm soát liên lạc được xử lý với hướng dẫn ưu tiên an toàn. Đây là baseline giới hạn, không phải hệ thống xác định tội phạm.
@@ -7,8 +9,9 @@ Tiện ích Chrome hỗ trợ nhận diện dấu hiệu thao túng và lừa đ
 ## Trạng thái MVP
 
 - Có extension WXT/React, backend FastAPI và phòng thử hội thoại tổng hợp.
-- Có vòng chọn người → bật bảo vệ → đọc tin → phân tích → cảnh báo có bằng chứng → tắt/xóa phiên.
+- Có vòng chọn người → bật bảo vệ → đọc tin → phân tích → cảnh báo có bằng chứng → xem bản nháp/xuất báo cáo → tắt/xóa phiên.
 - Có kiểm tra backend, phục hồi khi mở lại bảng tiện ích, nhập/xuất hội thoại JSON, xem tin bằng chứng và xử lý quota/thử lại.
+- Trong panel có **Bản nháp & báo cáo**: xem 25 tin gần nhất rồi mở thêm; tải JSON/HTML với cảnh báo/bằng chứng hoặc toàn bộ bộ đệm. File tạo trên máy, không gọi AI; không kèm token hoặc định danh Facebook từ metadata.
 - Mặc định dùng **bộ luật minh họa**, không phải mô hình AI đã huấn luyện.
 - Có tích hợp Groq tùy chọn, cần khóa API và đồng ý gửi ngữ cảnh. Không có khóa thì không gọi AI bên ngoài.
 - Bộ đọc ô chat nhỏ Facebook đã được đối chiếu với DOM thật của hai tài khoản thử. Panel liệt kê metadata các cuộc đang mở, chỉ đọc nội dung người được chọn; đóng ô chat giữ lựa chọn và chờ đúng cuộc được tải lại. Giao diện khác vẫn cần kiểm chứng.
@@ -59,16 +62,22 @@ Tests kiểm tra schema, quyền truy cập, bằng chứng, phạm vi cuộc tr
 - Chế độ Groq gửi phần ngữ cảnh được chọn tới Groq sau khi đồng ý. Ưu tiên dữ liệu tổng hợp khi thử; xem [chính sách dữ liệu Groq](https://console.groq.com/docs/your-data).
 - Mức 1 giữ tối đa 100 tin/24.000 ký tự; mức 2 giữ tối đa 300 tin/72.000 ký tự. Nút nạp lịch sử chỉ cuộn trong đúng cuộc đã chọn và báo số tin thực tế. Groq nhận tối đa 40 tin/6.000 ký tự mỗi lượt: phần gần nhất và một số phát biểu cũ về phí còn trong bộ đệm. Các lượt cách nhau tối thiểu 30 giây; ID thật được thay bằng mã tạm trước khi gửi. Không cam kết lấy đủ lịch sử hoặc đọc tin khi Facebook đã gỡ ô chat khỏi DOM; không tự gửi tin.
 - Cảnh báo không xác minh danh tính, không chứng minh một người phạm tội hoặc cuộc trò chuyện an toàn.
+- Văn bản Groq và file xuất vẫn có thể chứa thông tin cá nhân do chính nội dung chat cung cấp. Tắt & xóa không xóa file đã tải hoặc dữ liệu nhà cung cấp đã nhận; không tự dùng báo cáo để train.
 
 Không commit `.env`, dữ liệu riêng tư, model weights hoặc checkpoints. Khóa Groq chỉ đặt trong `apps/api/.env`, không trong extension.
 
 ## Tài liệu
 
+- [Chỉ mục tài liệu](docs/README.md)
 - [Kế hoạch sản phẩm và phân công nhóm](docs/product-plan.md)
 - [Phạm vi MVP](docs/mvp.md)
 - [Kiến trúc](docs/architecture.md)
 - [Giao diện và thao tác](docs/extension-ux.md)
 - [Theo dõi khi đóng panel](docs/background-mode.md)
+- [Bản nháp và xuất báo cáo](docs/reports.md)
+- [Quyền riêng tư và vòng đời dữ liệu](docs/privacy.md)
+- [Hợp đồng API](docs/api-contract.md)
+- [Kết quả kiểm thử](docs/verification.md)
 - [Nguồn dữ liệu tổng hợp](docs/data-sources.md)
 - [Các bước tiếp theo](docs/next-steps.md)
 - [Quy định dữ liệu](ml/data/README.md)

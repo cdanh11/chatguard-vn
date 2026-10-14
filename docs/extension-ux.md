@@ -1,5 +1,7 @@
 # Trải nghiệm tiện ích
 
+Cập nhật: 14/10/2026. Tập trung vào một cuộc trò chuyện, thao tác thường ngày và bằng chứng.
+
 Màn hình chính tập trung vào cuộc đang được bảo vệ và điều cần làm tiếp theo. Cấu hình dịch vụ, token, ngân sách tin và chẩn đoán không xuất hiện trên đường dùng thường ngày.
 
 ## Bắt đầu
@@ -26,6 +28,14 @@ Thẻ trên cùng có tên, trạng thái, số tin và thao tác **Đổi ngư�
 
 **Tùy chọn cuộc trò chuyện** chứa mức 100/300 và đọc thêm tin cũ. **Giới hạn đánh giá** mở khi cần. Nút cài đặt ở header mở một màn hình riêng; build DEV và mã reader nằm trong **Thông tin kỹ thuật**.
 
+**Bản nháp & báo cáo** xuất hiện khi đang bảo vệ. Mở bản nháp để xem 25 tin gần nhất, chọn xem thêm 25 tin trước nếu cần. Không hiển thị toàn bộ 300 tin lên màn hình chính.
+
+Mặc định tải chỉ cảnh báo và bằng chứng; có lựa chọn toàn bộ bản nháp trong bộ đệm. Chọn JSON để kiểm tra dữ liệu hoặc HTML để đọc/in rồi bấm **Tải báo cáo**. Việc tải kiểm tra lại đúng phiên, không gọi AI và không làm dừng bảo vệ. Nếu chưa có đánh giá, file ghi rõ chưa có kết quả; không tự diễn giải thành an toàn.
+
+File không kèm metadata tên hồ sơ/token/ID Facebook nhưng câu chat có thể chứa thông tin riêng tư. Cảnh báo này nằm ngay cạnh nút tải; không thêm modal vào mỗi lần xem bản nháp. Xem [báo cáo](reports.md).
+
 Có thể đóng panel và nhận dấu `!` từ toolbar/nút nhỏ trên trang. Tần suất mỗi tin hoặc gộp 5 tin nằm trong cài đặt. Xem [theo dõi trong nền](background-mode.md).
 
 Kiểm thử trình duyệt kiểm tra layout 360px không tràn ngang, cảnh báo thấy trong viewport đầu, mở/đóng cài đặt giữ session, đổi người chưa đọc trước khi bật, bằng chứng, đóng/mở chat, lịch sử và các lỗi vận chuyển. Ảnh ở `outputs/` là dữ liệu tổng hợp, không commit.
+
+Tạm dừng giữ ngữ cảnh chưa có; **Tắt & xóa** và **Đổi người** đều kết thúc dữ liệu phiên. Không dùng cùng nhãn cho hai hành vi khác nhau.

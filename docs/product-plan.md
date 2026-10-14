@@ -1,6 +1,6 @@
 # Kế hoạch phát triển ChatGuard VN
 
-Phiên bản 1.1 · Rà soát ngày 14/10/2026 · Nhóm 3 thành viên
+Phiên bản 1.2 · Cập nhật ngày 14/10/2026 · Nhóm 3 thành viên
 
 Tên sản phẩm: **ChatGuard VN**. Tên repo: **`chatguard-vn`**.
 
@@ -27,7 +27,7 @@ Mở rộng về an toàn cá nhân theo **hành vi quan sát được**, ví d�
 | Claim ledger nhiều loại | Bắt đầu đối chiếu điều kiện phí, giữ ID và văn bản nguồn | Có thể nghiệm thu bằng cặp bằng chứng trước/sau |
 | Độ chắc chắn/điểm số | Không hiển thị phần trăm tự sinh | Chưa có dữ liệu để hiệu chuẩn |
 | Tạm dừng và tiếp tục | Đưa vào bước bổ sung sau ổn định; không gọi nút dừng/xóa hiện tại là tạm dừng giữ dữ liệu | Hai hành vi có chính sách dữ liệu khác nhau |
-| Xuất báo cáo | JSON/HTML cục bộ ở bước bổ sung; chưa cần PDF | Giảm phụ thuộc và tránh nhầm với nhập/xuất kịch bản demo |
+| Xuất báo cáo | JSON/HTML cục bộ đã có trong panel; PDF riêng để sau | Không gọi AI, không lẫn với JSON kịch bản demo |
 | Feedback “đã xác minh” | Chỉ ghi nhận ý kiến người dùng; không tự biến thành nhãn đúng hoặc hạ cảnh báo | Chưa có quy trình kiểm chứng và huấn luyện |
 
 ## 3. Người dùng và kịch bản ưu tiên
@@ -60,7 +60,7 @@ Không dùng thiếu tên công ty, lương cao hoặc một lời mời đi l�
 | Hướng dẫn ưu tiên an toàn cho yêu cầu kiểm soát cụ thể | Baseline mới; chưa phải mô hình nhận diện mọi tình huống dụ dỗ |
 | Dừng và xóa phiên | Có; dừng thu thập và loại kết quả đến muộn |
 | Tạm dừng giữ bộ đệm / tiếp tục cùng phiên | Tiếp theo; trạng thái `paused` hiện có sau stop không có nghĩa tính năng này đã hoàn thành |
-| Xem toàn bộ bản nháp, xuất báo cáo trong panel | Tiếp theo; nhập/xuất JSON phòng thử không thay thế tính năng này |
+| Xem toàn bộ bản nháp, xuất báo cáo trong panel | Có; xem theo nhóm 25 tin, JSON/HTML bằng chứng hoặc full-buffer, xác minh lại phiên |
 | Ledger cho lương, địa điểm, doanh nghiệp | Chưa có |
 | Phản hồi cảnh báo và lịch sử tín hiệu riêng | Chưa có |
 | Số liệu chất lượng độc lập/triển khai công khai | Chưa có |
@@ -120,7 +120,7 @@ Groq cách tối thiểu 30 giây giữa các lượt. Nhóm chưa đủ 5 tin c
 | Tải lại/đóng tab hoặc đổi đường dẫn | Dừng phiên theo hành vi hiện tại |
 | Dừng và xóa | Hủy lịch, yêu cầu đang chạy, xóa dữ liệu phiên do ứng dụng quản lý |
 | Reload/cập nhật/tắt extension hoặc restart trình duyệt | Session storage bị xóa; không tự khôi phục quyền đọc |
-| Xuất file sau này | File thuộc người dùng; xóa phiên không xóa file đã tải hoặc dữ liệu nhà cung cấp đã nhận |
+| Xuất file | File thuộc người dùng; xóa phiên không xóa file đã tải hoặc dữ liệu nhà cung cấp đã nhận |
 
 Nguồn kỹ thuật: [Chrome storage](https://developer.chrome.com/docs/extensions/reference/api/storage?hl=en), [Chrome alarms](https://developer.chrome.com/docs/extensions/reference/api/alarms). IndexedDB không có cùng vòng đời tự xóa của `storage.session`.
 
@@ -165,7 +165,7 @@ Màn hình chính giữ gọn: người đang được bảo vệ, trạng thái
 Thứ tự bổ sung:
 
 1. **Ổn định cập nhật DEV:** mã reader khớp manifest; không crash khi quyền mới chưa được nạp; hướng dẫn phục hồi rõ.
-2. **Bản nháp + xuất báo cáo:** mặc định chỉ cảnh báo/bằng chứng; xuất toàn bộ tin là lựa chọn riêng. JSON trước, HTML escape nội dung; PDF sau. Không tải dữ liệu lên server để tạo báo cáo.
+2. **Bản nháp + xuất báo cáo — đã bổ sung:** xem từng nhóm 25 tin; mặc định chỉ cảnh báo/bằng chứng, full-buffer là lựa chọn riêng. JSON/HTML tạo trên máy, alias ID, bỏ metadata định danh/token, HTML escape và CSP. Background kiểm tra lại đúng phiên trước xuất. PDF riêng để sau; xem [báo cáo](reports.md).
 3. **Tạm dừng/tiếp tục:** pause ngừng đọc và gọi API nhưng giữ bộ đệm; resume phải xác minh lại đúng ID, giữ một phiên có điểm gián đoạn rõ. Không gom ngầm nội dung trong lúc pause.
 4. **Ledger mở rộng và phản hồi:** chỉ sau khi có dữ liệu đánh giá, quy tắc giải thích đính chính và trạng thái hết nguồn.
 
@@ -205,7 +205,7 @@ Cả nhóm cùng duyệt ca bất đồng và kịch bản demo. Hai người AI
 | Ngày tương đối | Công việc | Điều kiện hoàn thành |
 |---|---|---|
 | Ngày 1 | Chốt tài liệu này; ổn định DEV, chọn một người, đóng panel/chat, xóa; ca phí và kiểm soát cá nhân | Các luồng kỹ thuật chạy được; giới hạn ghi đúng |
-| Ngày 2 | Nhóm AI/ML làm ca kiểm thử và đánh giá; kỹ thuật làm bản nháp/xuất báo cáo nếu lõi ổn | Có bảng lỗi theo ca; không dùng demo làm test độc lập |
+| Ngày 2 | Nhóm AI/ML làm ca kiểm thử và đánh giá; kỹ thuật nghiệm thu bản nháp/báo cáo đã có | Có bảng lỗi theo ca, kiểm tra file đúng phiên/phạm vi; không dùng demo làm test độc lập |
 | Ngày 3 | Sửa lỗi ưu tiên, thử đủ một vòng trên hai tài khoản được phép, chuẩn bị demo và báo cáo | Demo lặp lại được; có phương án phòng thử khi DOM/API lỗi |
 
 Đây là thứ tự thực hiện đề xuất, không khẳng định mọi backlog hoàn thành trong 3 ngày. Nếu thiếu thời gian, ưu tiên phạm vi đúng, bằng chứng đúng và kết quả không gây hiểu nhầm trước export/feedback/ledger tổng quát. Chốt ngày nộp theo lịch thực tế của nhóm, không tự suy ra hạn mới từ tài liệu cũ.
@@ -216,6 +216,8 @@ MVP đạt vòng đời khi: thiết lập → chọn A → bật bảo vệ →
 
 Bản có đối chiếu phí phải chứng minh được cặp trước/sau trong giới hạn bộ đệm; bản có cảnh báo kiểm soát phải dùng hành động ưu tiên an toàn. API lỗi/quota không được hiện kết quả “an toàn”.
 
-Sau MVP: pause/resume, báo cáo cục bộ, ledger nhiều loại, dữ liệu độc lập và đánh giá người dùng. Instagram/Threads, ảnh/voice, xác minh pháp nhân và server công khai là các giai đoạn riêng. Không đổi kiến trúc hoặc xin thêm quyền chỉ vì có trong sơ đồ kế hoạch.
+Sau MVP: pause/resume, ledger nhiều loại, dữ liệu độc lập và đánh giá người dùng. Báo cáo cục bộ JSON/HTML đã có; PDF riêng/feedback để sau. Instagram/Threads, ảnh/voice, xác minh pháp nhân và server công khai là các giai đoạn riêng. Không đổi kiến trúc hoặc xin thêm quyền chỉ vì có trong sơ đồ kế hoạch.
+
+Tài liệu vận hành: [chỉ mục](README.md), [API](api-contract.md), [quyền riêng tư](privacy.md), [kiểm thử](verification.md).
 
 Trước phân phối công khai, cần rà soát chính sách nền tảng và quyền riêng tư hiện hành. Tài liệu này không xác nhận đã đáp ứng điều khoản Meta hoặc Chrome Web Store.

@@ -1,16 +1,26 @@
 # Nguồn tình huống và giới hạn dữ liệu
 
-Các hội thoại trong `apps/api/demo/scenarios.json` là dữ liệu tổng hợp do dự án biên soạn. Không lấy hộp thư, hồ sơ hay tin nhắn riêng từ mạng xã hội. Không coi chúng là dữ liệu nạn nhân thực tế.
+Cập nhật: 14/10/2026.
 
-Nguồn mô tả thủ đoạn để tham khảo:
+## Dữ liệu đang có
 
-- Cẩm nang phòng chống lừa đảo của Bộ Công an, bản do Công an Lâm Đồng đăng: https://congan.lamdong.gov.vn/Uploaded/files/thong-bao/2025/C%E1%BA%A9m%20nang%20phong%20chong%20lua%20dao%20-%20BCA%20222.pdf
-- Bộ Công an cảnh báo nhận quà kèm QR giả: https://www.bocongan.gov.vn/bai-viet/canh-bao-thu-doan-tang-qua-trung-thu-du-quet-ma-qr-de-chiem-doat-tai-san-1789980256
+`apps/api/demo/scenarios.json` chứa 9 hội thoại tổng hợp: CTV, bạn học, giả danh cơ quan, xin OTP, nhắc trả nợ, lời nhắc cảnh giác, thay đổi phí, giữ giấy tờ/cô lập và phỏng vấn bình thường.
 
-Các mẫu chỉ minh họa nhóm dấu hiệu: nhiệm vụ yêu cầu ứng tiền, ngăn kiểm chứng, giả danh cơ quan, xin mã truy cập; có thêm ca bình thường, phủ định và ca nhắc trả nợ dễ báo nhầm.
+Không lấy hộp thư hoặc hội thoại riêng từ mạng xã hội. `expected` là nhãn regression của baseline, chưa phải nhãn chuyên gia hoặc kết luận về người thật. Demo không phải test độc lập cho chất lượng AI.
 
-`expected` là kỳ vọng hoạt động của baseline trong demo, không phải kết luận pháp lý hay nhãn đã được chuyên gia thẩm định. Các ca này không phải tập test độc lập cho tuyên bố chất lượng AI.
+Fixture unit/E2E cũng tổng hợp. Thử Facebook thật chỉ với tài khoản được phép và nội dung đóng vai; kiểm tra adapter không tự tạo dataset train.
 
-Trước khi huấn luyện cần xây hướng dẫn gán nhãn, kiểm tra độc lập, đa dạng ngôn ngữ, tách theo họ kịch bản và có hội thoại bình thường khó. Xem `ml/data/README.md`.
+## Nguồn tham khảo thủ đoạn
 
-API Groq: https://console.groq.com/docs/quickstart ; hạn mức: https://console.groq.com/docs/rate-limits ; dữ liệu: https://console.groq.com/docs/your-data . Kiểm tra lại khi sử dụng; kiểm thử mô phỏng không thay thế gọi API thật.
+- [Cẩm nang phòng chống lừa đảo của Bộ Công an, bản do Công an Lâm Đồng đăng](https://congan.lamdong.gov.vn/Uploaded/files/thong-bao/2025/C%E1%BA%A9m%20nang%20phong%20chong%20lua%20dao%20-%20BCA%20222.pdf).
+- [Bộ Công an: cảnh báo nhận quà kèm QR giả](https://www.bocongan.gov.vn/bai-viet/canh-bao-thu-doan-tang-qua-trung-thu-du-quet-ma-qr-de-chiem-doat-tai-san-1789980256).
+
+Nguồn dùng để tham khảo mô tả thủ đoạn; không tuyên bố câu chat demo trích nguyên văn. Khi mở rộng, ghi nguồn, quyền sử dụng, ngày thu thập, mức ẩn danh và hướng dẫn nhãn.
+
+## Groq và dữ liệu ra ngoài
+
+[Quickstart](https://console.groq.com/docs/quickstart), [hạn mức](https://console.groq.com/docs/rate-limits), [chính sách dữ liệu](https://console.groq.com/docs/your-data). Khả năng truy cập model/quota phụ thuộc tài khoản và thời điểm; không bảo đảm miễn phí vô hạn. Mock không thay thế gọi thật.
+
+API key dùng cho inference, không tự train. Alias ID chỉ giảm định danh metadata; văn bản vẫn có thể chứa thông tin cá nhân. Xuất báo cáo cục bộ không gọi Groq hoặc tự đưa dữ liệu vào ML.
+
+Xem [dataset](../ml/data/README.md), [đánh giá](../ml/evaluation/README.md), [quyền riêng tư](privacy.md).

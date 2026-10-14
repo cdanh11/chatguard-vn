@@ -1,5 +1,7 @@
 # Chạy một vòng bảo vệ
 
+Cập nhật: 14/10/2026. Phòng thử gồm 9 kịch bản tổng hợp và không gửi tin cho người thật.
+
 ## Cài đặt
 
 Yêu cầu: Windows PowerShell, Python 3.11 và Node.js 22+; Internet chỉ cần khi cài thư viện hoặc dùng Groq. Không cần Docker, GPU hoặc model weights.
@@ -21,7 +23,8 @@ Giữ cửa sổ backend mở. Token máy chủ được in để nhập vào ti
 6. Nếu chưa thấy cuộc trò chuyện, bấm **Kết nối tab đang mở**. Kiểm tra tên, rồi **Bật bảo vệ cuộc này**.
 7. Phát từng tin. Khi tổ hợp dấu hiệu xuất hiện, cảnh báo được hiển thị. Mở **Xem N tin liên quan** để xem câu gốc.
 8. Chuyển sang Minh: phiên dừng và nội dung cũ bị xóa. Phát tin của Minh không được tự phân tích.
-9. Quay lại CTV, bấm bật lại. Để kết thúc bấm **Tắt & xóa**.
+9. Quay lại CTV, bấm bật lại. Mở **Bản nháp & báo cáo** để đọc phần đã nhận và tải JSON/HTML khi cần. Chọn toàn bộ bản nháp chỉ khi muốn đưa tất cả tin trong buffer vào file.
+10. Để kết thúc bấm **Tắt & xóa**. File đã tải do bạn quản lý và không bị xóa theo phiên.
 
 Bấm **Kiểm tra kết nối** trong cấu hình để kiểm tra backend/token (không gọi Groq, không kiểm tra quota). Bấm **Xem tin này** dưới bằng chứng để cuộn và tô sáng tin gốc trong phòng thử. Đóng/mở lại panel giữ phiên trong cùng phiên trình duyệt. Nút **Làm lại** xóa phiên bảo vệ; cần bật lại chủ động.
 
@@ -39,6 +42,8 @@ Trong phòng thử, chọn file JSON ở cuối trang. Nội dung mẫu:
 Cho phép `self`, `other`, `unknown`; 1–100 tin, mỗi tin tối đa 4.000 ký tự, tổng tối đa 24.000 ký tự, file tối đa 160 KB. File được kiểm tra và đọc tại trình duyệt; không tự upload. Chuyển sang cuộc nhập sẽ dừng phiên cũ. Bật lại bảo vệ rồi phát tin. **Xuất hội thoại hiện tại** tải file chứa những tin đã phát và tin tự thêm; lưu ý nếu bạn tự nhập nội dung riêng tư. Các cuộc nhập tồn tại tới lúc tải lại trang.
 
 Trang thử không gửi tin cho người thật. Các ca được biên soạn, không phải bản chép tin nhắn của nạn nhân.
+
+Định dạng JSON kịch bản demo khác báo cáo phiên. Báo cáo có mức đánh giá, nguồn bằng chứng và trạng thái cập nhật; không nhập báo cáo như dataset hoặc kịch bản tự động. Xem [bản nháp/báo cáo](reports.md).
 
 ## Groq tùy chọn
 
@@ -77,6 +82,8 @@ Kiểm tra trên trình duyệt (tùy chọn, giữ backend đang chạy):
 cd apps/extension
 npx playwright install chromium
 npm run test:e2e
+npm run test:e2e:recruitment
+npm run test:e2e:reports
 ```
 
 Nếu đã có Chromium hỗ trợ unpacked extension, đặt `CHROMIUM_EXECUTABLE` tới file thực thi để bỏ qua bước tải. Bài thử dùng profile tạm riêng, dữ liệu tổng hợp và xóa profile khi kết thúc; không dùng tài khoản Facebook của bạn. Side Panel được mở như trang extension để kiểm tra tự động, nên thao tác bấm biểu tượng mở Side Panel vẫn cần kiểm tra thủ công trong Chrome.

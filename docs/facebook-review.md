@@ -1,6 +1,6 @@
 # Review tích hợp Facebook
 
-Ngày: 2026-10-13. Phạm vi: chọn một người trong ô chat nhỏ, nhận tin văn bản, phân tích và giữ lựa chọn khi đóng ô chat.
+Cập nhật: 14/10/2026. Review bắt đầu 13/10/2026; phạm vi chọn một người trong ô chat nhỏ, nhận tin văn bản, phân tích và giữ lựa chọn khi đóng ô chat. Các xác minh phiên thật dưới đây là lịch sử thử nghiệm, không chứng minh mọi phiên bản sau tự động đã được nạp trên Brave.
 
 ## Đã sửa
 
@@ -13,6 +13,7 @@ Ngày: 2026-10-13. Phạm vi: chọn một người trong ô chat nhỏ, nhận 
 - Groq nhận mã tin tạm theo request; ID tài khoản/tin gốc chỉ được ánh xạ lại ở backend để hiển thị bằng chứng.
 - Giới hạn body bằng đọc stream có trần trước khi parse; lỗi schema không lặp lại nội dung riêng tư.
 - API có trạng thái chẩn đoán cần token, không chứa chat hoặc định danh gốc.
+- Bản nháp/báo cáo dùng buffer đúng cuộc đã chọn, không thêm nguồn đọc Facebook. Background kiểm tra session/conversation khi xuất; file bỏ metadata tên/ID gốc và không tự gọi Groq. Xem [báo cáo](reports.md).
 
 ## Xác minh trên Brave — 2026-10-14
 
@@ -31,4 +32,6 @@ Người dùng báo mở extension rồi đóng chat làm mất đối tượng.
 
 ## Giới hạn công cụ kiểm thử
 
-Browser-use chỉ cho phép HTTP/HTTPS và đã chặn trang quản lý extension. Nạp/reload ChatGuard trong Brave cần người dùng thao tác. Không dùng đường vòng để truy cập trang bị chặn. Có thể tiếp tục kiểm tra DOM Facebook, gửi kịch bản giữa hai tài khoản đã được phép và đọc metadata từ API local.
+E2E dùng profile Chromium riêng và DOM tổng hợp; thao tác toolbar/native side panel và cập nhật bản đang nạp phải được nghiệm thu trong trình duyệt thật. Nạp/reload extension qua trang quản lý của trình duyệt. Thử với tài khoản được phép, không mở rộng sang hộp thư/cuộc khác hoặc dùng API nội bộ để lấy thêm dữ liệu.
+
+Kiểm tra báo cáo riêng: chỉ dữ liệu A, bản nháp biến mất khi dừng, yêu cầu xuất A bị từ chối sau chuyển B, HTML không thực thi nội dung chat. Báo cáo trên thiết bị và dữ liệu Groq đã nhận nằm ngoài thao tác xóa phiên; xem [quyền riêng tư](privacy.md).

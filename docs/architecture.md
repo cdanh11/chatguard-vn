@@ -1,5 +1,7 @@
 # Kiến trúc MVP
 
+Cập nhật: 14/10/2026. WXT/React MV3, FastAPI local, rules/Groq tùy chọn.
+
 ```text
 Người dùng bấm extension → mở Side Panel
   → Kết nối tab (activeTab): chèn content script, chỉ đọc metadata
@@ -9,11 +11,15 @@ Người dùng bấm extension → mở Side Panel
   → Pydantic kiểm tra đầu vào → rules hoặc Groq có consent
   → Kiểm tra evidence IDs
   → Chỉ hiển thị nếu conversation + session + revision vẫn khớp
+  → Người dùng xem bản nháp hoặc yêu cầu xuất
+  → Background xác minh lại cuộc + phiên → panel tạo file JSON/HTML cục bộ
 ```
 
 ## Dữ liệu và trạng thái
 
 Nội dung chỉ trong DOM, bộ nhớ content script, `chrome.storage.session`, request và bộ nhớ server. Không ghi DB, log hoặc đồng bộ. Chế độ Groq gửi dữ liệu tới dịch vụ ngoài; phải đồng ý rõ. Đổi cấu hình dừng phiên để không tiếp tục với quyền cũ.
+
+Người dùng có thể chủ động tải file báo cáo; đó là bản sao trên thiết bị do họ quản lý, khác với dữ liệu phiên. Không tự upload file hoặc dùng nó để train. Chi tiết: [vòng đời dữ liệu](privacy.md).
 
 Service worker có thể bị dừng. Lịch phân tích nằm trong session storage và alarm; worker kiểm tra đúng phiên rồi đặt lại lịch khi khởi động. Không giữ worker sống vô hạn và không cam kết giám sát khi tab Facebook đóng. Đóng ô chat nhỏ giữ người đã chọn; khi log không còn được xác minh, trạng thái là chờ và không đọc người khác.
 
@@ -34,3 +40,11 @@ Rules là baseline có giới hạn, không phải AI đã train. Groq nhận JS
 `app/claims.py` suy ra ledger phí trong từng lượt, chỉ từ `other`: không thu phí → yêu cầu tiền về sau, dẫn hai ID nguồn. Áp dụng cho rules và sau kết quả Groq hợp lệ; không chạy thay thế khi Groq lỗi. Không lưu ledger riêng hoặc suy ra gian dối. Bộ mẫu giới hạn bỏ qua câu hỏi, một số phủ định/trích dẫn/ngoại lệ; chưa xử lý mọi cách nói.
 
 Yêu cầu giao giấy tờ gốc hoặc cấm liên lạc người thân có chính sách ưu tiên an toàn. Áp dụng sau kết quả Groq đã hợp lệ; không dùng chính sách này làm fallback khi API lỗi. Không gợi ý tiếp tục hỏi thử hoặc đi gặp trong các ca đó. `self` và `unknown` không được dùng làm bằng chứng quy yêu cầu cho đối phương.
+
+## Bản nháp và báo cáo
+
+`SessionArchive.tsx` hiển thị bản nháp theo từng nhóm 25 tin, không thêm nguồn thu thập. Khi xuất, lệnh `EXPORT_SNAPSHOT` từ extension page phải khớp tab đã kết nối, session và conversation hiện tại. Dừng/đổi người làm yêu cầu cũ bị từ chối.
+
+`lib/report.ts` chọn các trường được phép, thay ID gốc bằng `m1…`, bỏ metadata tên hồ sơ/token/ID phiên. Mặc định chỉ xuất bằng chứng; toàn bộ bộ đệm là lựa chọn riêng. Đánh giá cũ hợp lệ được ghi `stale`; kết quả khác phiên hoặc mất nguồn không được xuất như đánh giá hiện tại.
+
+HTML escape mọi văn bản động, có CSP chặn script và tài nguyên ngoài, không linkify URL trong chat. Blob được tạo ở panel và object URL được thu hồi sau tải. Không thêm permission downloads, endpoint API hoặc database. Xem [định dạng báo cáo](reports.md), [API](api-contract.md).
