@@ -12,7 +12,7 @@ export function nextAnalysisAt(now:number,every:1|5,count:number,since:number,ha
 }
 export function priorityChange(messages:ChatMessage[],ids:string[]):boolean {
   const changed=new Set(ids);
-  return messages.some(m=>m.sender!=='self'&&changed.has(m.id)&&/\b(otp|ck)\b|chuyển khoản|chuyen khoan|nạp tiền|nap tien|mật khẩu|mat khau/i.test(m.text));
+  return messages.some(m=>m.sender==='other'&&changed.has(m.id)&&/\b(otp|ck)\b|chuyển khoản|chuyen khoan|nạp tiền|nap tien|mật khẩu|mat khau|hộ chiếu|ho chieu|giấy tờ gốc|giay to goc|liên lạc.{0,30}gia đình|lien lac.{0,30}gia dinh/i.test(m.text));
 }
 export function indicatorFor(state?:TabState):Indicator {
   if(state?.snapshot.status!=='watching')return {kind:'off',text:'',color:'#64748b',label:'Mở ChatGuard VN'};

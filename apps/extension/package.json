@@ -11,7 +11,10 @@
     "postinstall": "wxt prepare",
     "test:e2e": "node tests/e2e/smoke.cjs",
     "test:e2e:facebook": "node tests/e2e/facebook.cjs",
-    "test:e2e:background": "node tests/e2e/background.cjs"
+    "test:e2e:background": "node tests/e2e/background.cjs",
+    "test:e2e:startup": "node tests/e2e/startup.cjs",
+    "test:e2e:dev-sync": "node tests/e2e/dev-sync.cjs",
+    "test:e2e:recruitment": "node tests/e2e/recruitment.cjs"
   },
   "dependencies": {
     "react": "^19.3.0",

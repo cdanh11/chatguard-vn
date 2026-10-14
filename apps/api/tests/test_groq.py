@@ -132,3 +132,29 @@ def test_groq_blank_lists_are_cleaned_and_limits_are_always_explicit(groq_mock):
     assert result.json()["actions"] == ["Xác minh độc lập."]
     assert len(result.json()["limitations"]) >= 2
     assert all(item.strip() for item in result.json()["limitations"])
+
+
+def test_safety_policy_overrides_unsafe_followup_after_valid_ai_response(groq_mock):
+    client, _, response = groq_mock
+    body = {**BODY, "messages": [{"id": "m1", "sender": "other", "text": "Em giao hộ chiếu bản gốc cho chị giữ."}]}
+    content = {**ASSESSMENT, "level": "no_signal", "signals": [], "actions": ["Đi gặp để hỏi thêm."]}
+    response["body"]["choices"][0]["message"]["content"] = json.dumps(content)
+    result = client.post("/api/analyze", json=body, headers=HEADERS).json()
+    assert result["level"] == "high_concern"
+    assert result["signals"][0]["kind"] == "physical_safety"
+    assert result["signals"][0]["evidence_ids"] == ["m1"]
+    assert "Đi gặp để hỏi thêm." not in result["actions"]
+
+
+def test_fee_pair_policy_applies_to_valid_ai_results_too(groq_mock):
+    client, _, response = groq_mock
+    body = {**BODY, "messages": [
+        {"id": "old-promise", "sender": "other", "text": "Không thu phí tuyển dụng."},
+        {"id": "new-demand", "sender": "other", "text": "Em đóng phí kích hoạt 300k nhé."},
+    ]}
+    content = {**ASSESSMENT, "level": "no_signal", "signals": [], "actions": []}
+    response["body"]["choices"][0]["message"]["content"] = json.dumps(content)
+    result = client.post("/api/analyze", json=body, headers=HEADERS).json()
+    assert result["level"] == "review"
+    assert result["signals"][0]["kind"] == "changed_fee_condition"
+    assert result["signals"][0]["evidence_ids"] == ["old-promise", "new-demand"]

@@ -34,5 +34,21 @@
     {"sender":"other","text":"Đừng cung cấp OTP cho người lạ nhé."},
     {"sender":"self","text":"Ok, có gì mình sẽ gọi xác minh trước."},
     {"sender":"other","text":"Không chuyển khoản theo yêu cầu không xác định."}
+  ]},
+  {"id":"fee-change","name":"Điều kiện phí thay đổi · tổng hợp","category":"Đối chiếu trước và sau","expected":"review","messages":[
+    {"sender":"other","text":"Bên mình không thu bất kỳ khoản phí nào khi nhận việc."},
+    {"sender":"self","text":"Dạ cho em xin lịch làm việc."},
+    {"sender":"other","text":"Em nộp phí kích hoạt 300k để nhận việc nhé."}
+  ]},
+  {"id":"physical-control","name":"Giữ giấy tờ và cô lập · tổng hợp","category":"Ưu tiên an toàn cá nhân","expected":"high_concern","messages":[
+    {"sender":"other","text":"Bên chị sắp xếp xe đưa em đến nơi làm việc."},
+    {"sender":"self","text":"Em cần chuẩn bị gì?"},
+    {"sender":"other","text":"Em giao hộ chiếu bản gốc cho chị giữ."},
+    {"sender":"other","text":"Không được liên lạc với gia đình trong lúc làm việc."}
+  ]},
+  {"id":"normal-interview","name":"Hẹn phỏng vấn · tổng hợp","category":"Ca đối chứng tuyển dụng","expected":"no_signal","messages":[
+    {"sender":"other","text":"Mai em đến văn phòng phỏng vấn theo lịch nhé."},
+    {"sender":"self","text":"Em cần mang giấy tờ gì?"},
+    {"sender":"other","text":"Mang bản sao căn cước, không giao hộ chiếu bản gốc cho ai. Em có thể đi cùng người thân."}
   ]}
 ]

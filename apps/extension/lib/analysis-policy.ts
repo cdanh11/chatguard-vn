@@ -3,12 +3,22 @@ import type { Assessment, ChatMessage, Settings } from './types';
 export const GROQ_INTERVAL_MS=30000;
 export function selectContext(messages:ChatMessage[], provider:Settings['provider']):ChatMessage[] {
   if(provider==='rules') return messages;
-  const selected:ChatMessage[]=[];let chars=0;
-  for(const message of messages.slice(-40).reverse()) {
+  // Retain a small number of original fee statements before the recent window.
+  // This is context selection, not a risk verdict or persistent semantic memory.
+  const anchors:ChatMessage[]=[];let anchorChars=0;
+  for(const message of messages.slice(0,-32)) {
+    const text=message.text.toLowerCase().replace(/đ/g,'d').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(message.sender==='other'&&/\b(khong (thu|mat|ton)|mien) (bat ky )?(khoan )?phi\b|\bkhong (can|phai) (dong|nop|tra|chuyen) (bat ky )?(khoan )?(phi|tien)\b/.test(text)
+      &&anchors.length<8&&anchorChars+message.text.length<=1500){anchors.push(message);anchorChars+=message.text.length;}
+  }
+  const selected:ChatMessage[]=[];let chars=anchorChars;
+  for(const message of messages.slice(-(40-anchors.length)).reverse()) {
+    if(anchors.some(anchor=>anchor.id===message.id))continue;
     if(chars+message.text.length>6000) break;
     selected.unshift(message);chars+=message.text.length;
   }
-  return selected;
+  const ids=new Set([...anchors,...selected].map(m=>m.id));
+  return messages.filter(m=>ids.has(m.id));
 }
 
 export function retryDelay(value:string|null):number {

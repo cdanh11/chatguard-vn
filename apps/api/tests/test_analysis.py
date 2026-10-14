@@ -71,6 +71,50 @@ def test_unknown_sender(client):
     assert result.json()["level"] == "insufficient_context"
 
 
+def test_unknown_sender_is_never_evidence_when_roles_are_mixed(client):
+    body = payload(["Chào bạn", "Gửi OTP cho chị"])
+    body["messages"][1]["sender"] = "unknown"
+    result = client.post("/api/analyze", json=body, headers=HEADERS).json()
+    assert result["level"] == "no_signal" and result["signals"] == []
+
+
+def test_fee_change_cites_both_original_statements(client):
+    result = client.post("/api/analyze", json=payload([
+        "Bên mình không thu bất kỳ khoản phí nào.", "Trao đổi lịch làm việc", "Em nộp phí kích hoạt 300k để nhận việc."
+    ]), headers=HEADERS).json()
+    signal = next(s for s in result["signals"] if s["kind"] == "changed_fee_condition")
+    assert signal["evidence_ids"] == ["m0", "m2"]
+    assert "lừa đảo" not in signal["title"]
+
+
+@pytest.mark.parametrize("texts", [
+    ["Em nộp phí kích hoạt nhé", "Bên mình không thu phí"],
+    ["Không thu phí hồ sơ nhưng có phí đào tạo", "Nộp phí đào tạo nhé"],
+    ["Ví dụ người ta nói không thu phí", "Đóng phí kích hoạt nhé"],
+    ["Bên mình không thu phí", "Tại sao tôi phải đóng phí?"],
+    ["Bên mình không thu phí", "Đừng nộp phí cho ai"],
+])
+def test_fee_ledger_does_not_invent_unconditional_promises_or_demands(client, texts):
+    result = client.post("/api/analyze", json=payload(texts), headers=HEADERS).json()
+    assert not any(s["kind"] == "changed_fee_condition" for s in result["signals"])
+
+
+def test_physical_control_prioritizes_safety_with_other_evidence(client):
+    result = client.post("/api/analyze", json=payload([
+        "Em giao hộ chiếu bản gốc cho chị giữ.", "Không được liên lạc với gia đình."
+    ]), headers=HEADERS).json()
+    assert result["level"] == "high_concern"
+    assert result["signals"][0]["kind"] == "physical_safety"
+    assert result["signals"][0]["evidence_ids"] == ["m0", "m1"]
+    assert "không tiếp tục hỏi thử" in result["actions"][1]
+
+
+@pytest.mark.parametrize("text", ["Mai đến công ty phỏng vấn nhé", "Đừng giao hộ chiếu bản gốc cho ai", "Mang bản sao căn cước đến nhận việc"])
+def test_normal_travel_and_protective_advice_are_not_physical_control(client, text):
+    result = client.post("/api/analyze", json=payload([text]), headers=HEADERS).json()
+    assert not any(s["kind"] == "physical_safety" for s in result["signals"])
+
+
 def test_invalid_evidence_rejected():
     request = AnalyzeRequest(**payload(["hello"]))
     assessment = Assessment(level="high_concern", summary="test", signals=[Signal(kind="test", title="test", evidence_ids=["fake"])], actions=[], limitations=[])

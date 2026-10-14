@@ -21,6 +21,8 @@ describe('background monitoring',()=>{
   it('prioritizes incoming requests without treating that as a verdict or counting own OTP text',()=>{
     expect(priorityChange([{...a,text:'Gửi OTP cho chị'}],['a'])).toBe(true);
     expect(priorityChange([{...a,text:'Gửi OTP cho chị',sender:'self'}],['a'])).toBe(false);
+    expect(priorityChange([{...a,text:'Giao hộ chiếu bản gốc cho chị'}],['a'])).toBe(true);
+    expect(priorityChange([{...a,text:'Gửi OTP',sender:'unknown'}],['a'])).toBe(false);
     expect(priorityChange([{...a,text:'ck 300k'}],['unrelated'])).toBe(false);
   });
   it('never presents a safe checkmark, clears on stop and keeps a stale warning visible',()=>{

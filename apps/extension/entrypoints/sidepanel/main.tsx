@@ -139,7 +139,7 @@ function App() {
           {watching&&<button className="text" onClick={attach} disabled={busy}>Kết nối tab đang mở</button>}
           {state?.snapshot.historyNote&&<p className="hint">{state.snapshot.historyNote}</p>}
           <p className="hint">Chỉ đọc tin văn bản được Facebook tải. Đóng ô chat giữ người đã chọn nhưng có thể tạm ngừng đọc tin mới.</p>
-          {savedSettings.provider==='groq'&&<p className="hint">Groq phân tích tối đa 40 tin gần nhất, 6.000 ký tự/lượt. Các lượt cách nhau ít nhất 30 giây.</p>}
+          {savedSettings.provider==='groq'&&<p className="hint">Groq nhận tối đa 40 tin, 6.000 ký tự/lượt: phần gần nhất và một số phát biểu cũ về phí còn trong bộ đệm. Các lượt cách nhau ít nhất 30 giây.</p>}
         </details>
         {result&&<details className="advanced limitations"><summary>Giới hạn đánh giá</summary><ul>{(result.limitations.filter(l=>l.trim()).length?result.limitations.filter(l=>l.trim()):['Có thể thiếu ngữ cảnh; không xác minh danh tính đối phương.']).map(l=><li key={l}>{l}</li>)}</ul></details>}
       </>}

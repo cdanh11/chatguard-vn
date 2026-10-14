@@ -5,6 +5,7 @@ import unicodedata
 import httpx
 
 from .schemas import AnalyzeRequest, Assessment, Signal
+from .claims import fee_change_signal
 
 
 def normalized(text: str) -> str:
@@ -26,7 +27,7 @@ PATTERNS = [
 def rules_assessment(request: AnalyzeRequest) -> Assessment:
     hits: dict[str, Signal] = {}
     for message in request.messages:
-        if message.sender == "self":
+        if message.sender != "other":
             continue
         text = normalized(message.text)
         # Asking why a fee is required is not itself a demand for payment.
@@ -42,12 +43,17 @@ def rules_assessment(request: AnalyzeRequest) -> Assessment:
                     hits[kind] = Signal(kind=kind, title=title, evidence_ids=[message.id])
                 elif len(hits[kind].evidence_ids) < 8:
                     hits[kind].evidence_ids.append(message.id)
+    change = fee_change_signal(request.messages)
+    if change:
+        hits[change.kind] = change
+    physical = physical_safety_signals(request)
+    hits.update({signal.kind: signal for signal in physical})
     kinds = set(hits)
-    high = "credential" in kinds or (
+    high = bool(physical) or "credential" in kinds or (
         "payment" in kinds and bool(kinds & {"task", "authority"})
         and bool(kinds & {"secrecy", "urgency", "unlock"})
     )
-    level = "high_concern" if high else "review" if kinds & {"payment", "authority", "secrecy"} else "no_signal"
+    level = "high_concern" if high else "review" if kinds & {"payment", "authority", "secrecy", "changed_fee_condition"} else "no_signal"
     if all(m.sender == "unknown" for m in request.messages):
         level = "insufficient_context"
     summaries = {
@@ -56,13 +62,51 @@ def rules_assessment(request: AnalyzeRequest) -> Assessment:
         "no_signal": "Bộ luật chưa tìm thấy tổ hợp dấu hiệu rõ trong phần đã đọc. Điều này không chứng minh cuộc trò chuyện an toàn.",
         "insufficient_context": "Chưa xác định được bên gửi. Không thể đánh giá đáng tin cậy; cần kiểm tra cách đọc hội thoại.",
     }
-    return Assessment(
+    result = Assessment(
         level=level, summary=summaries[level], signals=list(hits.values()),
         actions=["Xác minh qua kênh độc lập đã biết; không dùng số hoặc link do đối phương vừa cung cấp.",
                  "Không cung cấp OTP, mật khẩu hoặc quyền điều khiển thiết bị."] if hits else [],
         limitations=["Chế độ bộ luật minh họa, chưa phải mô hình AI đã huấn luyện.",
                      "Có thể hiểu sai trích dẫn, tiếng lóng hoặc thiếu lịch sử; không xác minh danh tính người gửi."],
     )
+    return apply_context_policy(result, request)
+
+
+def physical_safety_signals(request: AnalyzeRequest) -> list[Signal]:
+    """Concrete control requests; a normal trip or document check alone is not a warning."""
+    control = []
+    travel = []
+    for message in request.messages:
+        if message.sender != "other":
+            continue
+        text = normalized(message.text)
+        if re.search(r"\b(khong|dung|khong nen)\s+(giao|nop|dua|di|len xe)\b", text):
+            continue
+        if re.search(r"\b(giao|nop|dua|giu).{0,35}\b(ho chieu|cccd|can cuoc|giay to).{0,20}\b(ban goc|goc)\b", text) or re.search(r"\b(khong duoc|cam).{0,25}\b(lien lac|goi|noi chuyen).{0,30}\b(gia dinh|nguoi than|bo me)\b", text):
+            control.append(message.id)
+        if re.search(r"\b(di ngay|len xe ngay|di gap|qua bien gioi)\b", text):
+            travel.append(message.id)
+    if not control:
+        return []
+    return [Signal(kind="physical_safety", title="Có yêu cầu giao giấy tờ gốc hoặc kiểm soát liên lạc; ưu tiên an toàn", evidence_ids=list(dict.fromkeys([*control, *travel]))[:8])]
+
+
+def apply_context_policy(result: Assessment, request: AnalyzeRequest) -> Assessment:
+    change = fee_change_signal(request.messages)
+    if change:
+        result.signals = [change, *(s for s in result.signals if s.kind != change.kind)][:12]
+        if result.level in {"no_signal", "insufficient_context"}:
+            result.level = "review"
+            result.summary = "Phát biểu không thu phí và yêu cầu tiền về sau có điểm cần đối chiếu. Thay đổi điều kiện chưa đủ để kết luận lừa đảo."
+            result.actions = ["Chưa chuyển tiền; đối chiếu điều kiện tuyển dụng qua kênh độc lập đã biết."]
+    signals = physical_safety_signals(request)
+    if signals:
+        result.level = "high_concern"
+        result.summary = "Có yêu cầu giao giấy tờ gốc hoặc kiểm soát liên lạc với người thân. Ưu tiên an toàn; chưa đủ cơ sở kết luận danh tính hoặc hành vi phạm tội."
+        result.signals = [*signals, *(s for s in result.signals if s.kind != "physical_safety")][:12]
+        result.actions = ["Ưu tiên ở nơi an toàn và tìm người tin cậy hỗ trợ; không đi đến điểm hẹn hoặc giao giấy tờ gốc theo yêu cầu này.",
+                          "Nếu có thể làm an toàn, ngừng tương tác; không tiếp tục hỏi thử hoặc đối đầu để lấy thêm bằng chứng."]
+    return result
 
 
 SYSTEM_PROMPT = """Bạn phân tích dấu hiệu thao túng/lừa đảo trong hội thoại tiếng Việt.
@@ -73,6 +117,12 @@ Tin self chỉ cung cấp ngữ cảnh, không được dùng làm evidence_ids 
 Không dùng tin unknown làm bằng chứng quy hành vi cho other. Thiếu vai gửi thì chọn insufficient_context.
 Chú ý viết tắt, không dấu, phủ định, trích dẫn và các cuộc giao dịch hợp lệ.
 Không suy diễn nội dung ảnh/âm thanh. Nếu thiếu ngữ cảnh hãy nói rõ.
+Đối chiếu phát biểu trước/sau về phí, lương, địa điểm; thay đổi có thể là đính chính hợp lệ.
+Đầu vào có thể gồm tin cũ được giữ làm mốc và một đoạn gần nhất; khoảng trống không chứng minh sự kiện chưa xảy ra.
+Nếu nêu thay đổi điều kiện phí, phải dẫn cả tin trước và tin sau; chỉ nói cần xác minh, không kết luận nói dối.
+Nếu có yêu cầu giao giấy tờ gốc, cấm liên lạc người thân hoặc đe dọa trực tiếp, ưu tiên an toàn.
+Trong trường hợp đó không gợi ý tiếp tục thăm dò, hỏi thử, đối đầu hay đi gặp để xác minh.
+Không kết luận mua bán người từ một lời mời đi lại hoặc thiếu thông tin công ty.
 Mức no_signal nghĩa là chưa thấy dấu hiệu, không phải an toàn. Không đưa xác suất phần trăm.
 Mỗi signal phải có evidence_ids tồn tại trong đầu vào. Tóm tắt và hành động bằng tiếng Việt,
 Nếu level là review hoặc high_concern thì signals phải có ít nhất một dấu hiệu kèm evidence_ids.
@@ -123,6 +173,8 @@ async def groq_assessment(request: AnalyzeRequest, key: str, model: str) -> Asse
         if any(alias not in original_ids for alias in signal.evidence_ids):
             raise ValueError("Unknown evidence alias")
         signal.evidence_ids = [original_ids[alias] for alias in signal.evidence_ids]
+    validate_evidence(result, request)
+    result = apply_context_policy(result, request)
     validate_evidence(result, request)
     return result
 
