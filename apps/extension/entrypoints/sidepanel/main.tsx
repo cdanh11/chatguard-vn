@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { DEFAULT_SETTINGS, type Conversation, type Settings, type TabState } from '../../lib/types';
 import './style.css';
+import {SessionArchive} from './SessionArchive';
 
 const labels = { no_signal:'Chưa thấy dấu hiệu rõ', review:'Cần kiểm chứng', high_concern:'Có dấu hiệu đáng lo', insufficient_context:'Chưa đủ ngữ cảnh' };
 function Shield({small=false}:{small?:boolean}) {
@@ -24,6 +25,7 @@ function App() {
   const [configOpen,setConfigOpen] = useState(false);
   const [now,setNow] = useState(Date.now());
   const [summaryExpanded,setSummaryExpanded] = useState(false);
+  const stateEpoch=useRef(0);
   useEffect(() => {
     void browser.runtime.sendMessage({type:'SETTINGS_GET'}).then(s => {if (s && !s.error) {setSettings(s);setSavedSettings(s);setConfigOpen(!s.token);}});
     void browser.runtime.sendMessage({type:'PANEL_CONTEXT'}).then(r=>{if(Number.isInteger(r?.tabId))setTabId(r.tabId);});
@@ -34,18 +36,22 @@ function App() {
     let alive=true,polling=false;
     const poll=async () => {
       if(polling)return;polling=true;
+      const epoch=stateEpoch.current;
+      const current=()=>alive&&epoch===stateEpoch.current;
       try {
         const response=await browser.runtime.sendMessage({type:'TAB_STATE',tabId});
-        if(response?.disconnected) {if(alive){setConnectionError(response.error);setTabId(undefined);setState(undefined);setAvailable([]);}return;}
-        if (alive) setState(response?.state);
+        if(!current())return;
+        if(response?.disconnected) {setConnectionError(response.error);setTabId(undefined);setState(undefined);setAvailable([]);return;}
+        setState(response?.state);
         const info=await browser.runtime.sendMessage({type:'DESCRIBE',tabId});
-        if(info?.error){if(alive)setConnectionError(info.error);return;}
-        if (alive) {
+        if(!current())return;
+        if(info?.error){setConnectionError(info.error);return;}
+        if (current()) {
           setConnectionError('');const choices=info?.conversations||[];setAvailable(choices);
           setSelectedId(old=>info?.snapshot?.status==='watching'?info.snapshot.conversation.id:choices.some((c:Conversation)=>c.id===old)?old:choices.length===1?choices[0].id:'');
           if(info?.snapshot?.status==='watching')setHistoryLimit(info.snapshot.historyLimit===300?300:100);
         }
-      } catch {if (alive) setConnectionError('Tab đã đóng hoặc tải lại. Kết nối lại để chọn cuộc trò chuyện.');}
+      } catch {if (current()) setConnectionError('Tab đã đóng hoặc tải lại. Kết nối lại để chọn cuộc trò chuyện.');}
       finally{polling=false;}
     };
     void poll();const timer=setInterval(()=>void poll(),1000);
@@ -54,6 +60,8 @@ function App() {
   useEffect(()=>setSummaryExpanded(false),[state?.result?.revision,state?.snapshot.sessionId]);
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4000);return()=>clearTimeout(timer);},[notice]);
   async function command(type:string, extra:Record<string,unknown>={}) {
+    // Drop in-flight panel polls when a user changes the selected scope.
+    if(['ATTACH','START','STOP','SETTINGS_SAVE'].includes(type))stateEpoch.current++;
     setBusy(true);setError('');setNotice('');
     try {
       const response=await browser.runtime.sendMessage({type,tabId,...extra});
@@ -132,6 +140,7 @@ function App() {
           {!!evidenceIds.length&&<details className="evidence"><summary>Xem {evidenceIds.length} tin liên quan <span>↗</span></summary><ul className="signal-list">{result.signals.map((s,i)=><li key={`${s.kind}:${i}`}>{s.title}</li>)}</ul>{evidenceIds.map(id=>{const m=state?.snapshot.messages.find(m=>m.id===id);return m?<blockquote key={id}><small>{m.sender==='self'?'Bạn':m.sender==='other'?'Đối phương':'Chưa rõ bên gửi'}</small>{m.text}<button className="text" onClick={()=>void command('FOCUS',{id})}>Xem tin này</button></blockquote>:null;})}</details>}
           <div className="result-meta">Đã phân tích {result.analyzed_count}/{count} tin · {result.provider==='groq'?'Groq AI':'Bộ luật cơ bản'}</div>
         </section> : watching&&!state?.analyzing&&!state?.waitingUntil&&!problem&&<section className="empty"><Shield/><h3>{count?'Đang chuẩn bị đánh giá':'Đợi tin nhắn đầu tiên'}</h3><p>Kết quả sẽ xuất hiện ở đây khi có đủ nội dung để phân tích.</p></section>}
+        {watching&&tabId!==undefined&&<SessionArchive key={state.snapshot.sessionId} state={state} tabId={tabId}/>}
         <details className="conversation-options advanced"><summary>Tùy chọn cuộc trò chuyện</summary>
           <label>Giới hạn lịch sử<select aria-label="Giới hạn lịch sử" value={historyLimit} disabled={watching||busy} onChange={e=>setHistoryLimit(Number(e.target.value) as 100|300)}><option value="100">100 tin gần nhất · mặc định</option><option value="300">300 tin gần nhất · mở rộng</option></select></label>
           {watching&&<p className="hint">Muốn đổi giới hạn, tắt bảo vệ rồi chọn lại mức lịch sử.</p>}

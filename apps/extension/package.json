@@ -14,7 +14,8 @@
     "test:e2e:background": "node tests/e2e/background.cjs",
     "test:e2e:startup": "node tests/e2e/startup.cjs",
     "test:e2e:dev-sync": "node tests/e2e/dev-sync.cjs",
-    "test:e2e:recruitment": "node tests/e2e/recruitment.cjs"
+    "test:e2e:recruitment": "node tests/e2e/recruitment.cjs",
+    "test:e2e:reports": "node tests/e2e/reports.cjs"
   },
   "dependencies": {
     "react": "^19.3.0",

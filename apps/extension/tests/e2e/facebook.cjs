@@ -54,6 +54,16 @@ document.querySelector('#lazyA').onclick=()=>{const log=document.querySelector('
     assert.equal(await panel.getByLabel('Giới hạn lịch sử').inputValue(),'300');
     let state=await worker.evaluate(async()=>{const s=await chrome.storage.session.get(null);return Object.values(s).find(v=>v?.snapshot)?.snapshot;});
     assert.equal(state.messages.length,300);assert.ok(state.messages.every(m=>m.id.startsWith('fb:1001@msgr.')));assert.equal(state.messages[0].id,'fb:1001@msgr.20');
+    await panel.locator('.session-archive > summary').click();await panel.locator('.draft-view > summary').click();
+    assert.equal(await panel.locator('.draft-list li').count(),25);
+    await panel.getByRole('button',{name:'Xem thêm 25 tin trước'}).click();assert.equal(await panel.locator('.draft-list li').count(),50);
+    await panel.getByLabel('Nội dung báo cáo').selectOption('conversation');
+    const [archive]=await Promise.all([panel.waitForEvent('download'),panel.getByRole('button',{name:'Tải báo cáo',exact:true}).evaluate(b=>b.click())]);
+    const archivePath=path.join(profile,'selected-conversation.json');await archive.saveAs(archivePath);
+    const exported=JSON.parse(fs.readFileSync(archivePath,'utf8'));assert.equal(exported.messages.length,300);
+    assert.ok(!JSON.stringify(exported).includes('PRIVATE B'));assert.ok(!JSON.stringify(exported).includes('fb:1001@msgr.'));
+    await panel.locator('.session-archive > summary').click();await chat.bringToFront();
+    console.log('PASS: draft renders 25 then 50 messages; full-buffer report exports all 300 selected A messages without B or original IDs.');
     const sessionBeforeReattach=state.sessionId;
     await panel.locator('details.conversation-options > summary').click();
     await panel.getByRole('button',{name:'Kết nối tab đang mở'}).evaluate(b=>b.click());

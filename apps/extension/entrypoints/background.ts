@@ -229,6 +229,14 @@ export default defineBackground(() => {
       return {state};
     }
     if (message.type === 'DESCRIBE') return readerInfo(tab);
+    if (message.type === 'EXPORT_SNAPSHOT') {
+      const state=await getState(tab);
+      if(!state||state.snapshot.status!=='watching'||!state.snapshot.sessionId
+        ||state.snapshot.sessionId!==message.sessionId||state.snapshot.conversation?.id!==message.conversationId) {
+        return {error:'Phiên đã dừng hoặc đổi người. Mở lại bản nháp của cuộc hiện tại để xuất.'};
+      }
+      return {state:structuredClone(state)};
+    }
     if (message.type === 'START') {
       if(!hasAlarms)return {error:reloadMessage};
       await readerInfo(tab);
